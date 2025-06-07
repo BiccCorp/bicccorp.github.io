@@ -55,3 +55,69 @@ body.light {
   background-color: #ffffff;
   color: #121212;
 }
+/* Płynna zmiana tła i koloru tekstu */
+body {
+  background-color: white;
+  color: black;
+  transition: background-color 0.5s ease, color 0.5s ease;
+}
+
+body.dark {
+  background-color: #121212;
+  color: #eee;
+}
+
+/* Płynne przejście dla linków */
+a {
+  color: blue;
+  transition: color 0.3s ease;
+}
+
+body.dark a {
+  color: #66aaff;
+}
+
+/* Płynne przejście dla nagłówków */
+h1, h2, h3 {
+  transition: color 0.5s ease;
+}
+
+body.dark h1, 
+body.dark h2, 
+body.dark h3 {
+  color: #ddd;
+}
+
+/* Płynna zmiana tła i tekstu przycisków */
+button {
+  background-color: #eee;
+  color: #333;
+  border: none;
+  padding: 0.5em 1em;
+  cursor: pointer;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body.dark button {
+  background-color: #333;
+  color: #eee;
+}
+
+/* Opcjonalnie: hover efekt linków i przycisków */
+a:hover {
+  color: #005bbb;
+  transition: color 0.2s ease;
+}
+
+body.dark a:hover {
+  color: #99cfff;
+}
+
+button:hover {
+  background-color: #ccc;
+  transition: background-color 0.2s ease;
+}
+
+body.dark button:hover {
+  background-color: #555;
+}
