@@ -33,21 +33,21 @@ nav a {
   font-weight: bold;
 
   /* Kolor linków i płynna zmiana */
-  color: blue;
+  color: #ff8800; /* pomarańczowy */
   transition: color 0.3s ease;
 }
 
 body.dark nav a {
-  color: #66aaff;
+  color: #ff8800; /* ten sam pomarańczowy w ciemnym motywie */
 }
 
 nav a:hover {
-  color: #005bbb;
+  color: #ffaa33; /* jaśniejszy pomarańczowy na hover */
   transition: color 0.2s ease;
 }
 
 body.dark nav a:hover {
-  color: #99cfff;
+  color: #ffbb44; /* jaśniejszy pomarańczowy w ciemnym motywie na hover */
 }
 
 button {
