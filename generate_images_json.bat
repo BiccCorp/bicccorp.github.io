@@ -9,18 +9,18 @@ echo [ > "%output%"
 set first=1
 for %%f in (%folder%\*.jpg %folder%\*.png) do (
     rem Pobieramy datę modyfikacji pliku w formacie RRRR-MM-DD
-    for /f "tokens=1-3 delims=/- " %%a in ('powershell -Command "(Get-Item '%%f').LastWriteTime.ToString('yyyy-MM-dd')"') do (
+    for /f %%a in ('powershell -Command "(Get-Item '%%f').LastWriteTime.ToString('yyyy-MM-dd')"') do (
         set "filedate=%%a"
     )
     if !first! equ 1 (
         set first=0
     ) else (
-        echo, >> "%output%"
+        >> "%output%" echo ,
     )
-    echo   { >> "%output%"
-    echo     "filename": "%%~nxf", >> "%output%"
-    echo     "date": "!filedate!" >> "%output%"
-    echo   } >> "%output%"
+    >> "%output%" echo {
+    >> "%output%" echo     "filename": "%%~nxf",
+    >> "%output%" echo     "date": "!filedate!"
+    >> "%output%" echo }
 )
 
 echo ] >> "%output%"
