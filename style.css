@@ -1,11 +1,21 @@
 body {
   margin: 0;
   font-family: Arial, sans-serif;
-  transition: background 0.3s, color 0.3s;
   display: flex;
   flex-direction: column;
   align-items: center;
   min-height: 100vh;
+
+  background-color: #ffffff;
+  color: #121212;
+
+  /* Płynna zmiana tła i koloru tekstu */
+  transition: background-color 0.5s ease, color 0.5s ease;
+}
+
+body.dark {
+  background-color: #121212;
+  color: #f0f0f0;
 }
 
 header {
@@ -21,7 +31,23 @@ nav a {
   margin: 0 1rem;
   text-decoration: none;
   font-weight: bold;
-  color: inherit;
+
+  /* Kolor linków i płynna zmiana */
+  color: blue;
+  transition: color 0.3s ease;
+}
+
+body.dark nav a {
+  color: #66aaff;
+}
+
+nav a:hover {
+  color: #005bbb;
+  transition: color 0.2s ease;
+}
+
+body.dark nav a:hover {
+  color: #99cfff;
 }
 
 button {
@@ -30,87 +56,17 @@ button {
   cursor: pointer;
   border: none;
   border-radius: 5px;
-  background: #444;
-  color: white;
-  transition: background 0.3s;
-}
-button:hover {
-  background: #666;
-}
 
-footer {
-  margin-top: auto;
-  padding: 1rem;
-  text-align: center;
-}
-
-/* Ciemny motyw */
-body.dark {
-  background-color: #121212;
-  color: #f0f0f0;
-}
-
-/* Jasny motyw */
-body.light {
-  background-color: #ffffff;
-  color: #121212;
-}
-/* Płynna zmiana tła i koloru tekstu */
-body {
-  background-color: white;
-  color: black;
-  transition: background-color 0.5s ease, color 0.5s ease;
-}
-
-body.dark {
-  background-color: #121212;
-  color: #eee;
-}
-
-/* Płynne przejście dla linków */
-a {
-  color: blue;
-  transition: color 0.3s ease;
-}
-
-body.dark a {
-  color: #66aaff;
-}
-
-/* Płynne przejście dla nagłówków */
-h1, h2, h3 {
-  transition: color 0.5s ease;
-}
-
-body.dark h1, 
-body.dark h2, 
-body.dark h3 {
-  color: #ddd;
-}
-
-/* Płynna zmiana tła i tekstu przycisków */
-button {
   background-color: #eee;
   color: #333;
-  border: none;
-  padding: 0.5em 1em;
-  cursor: pointer;
+
+  /* Płynna zmiana koloru i tła */
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 body.dark button {
   background-color: #333;
   color: #eee;
-}
-
-/* Opcjonalnie: hover efekt linków i przycisków */
-a:hover {
-  color: #005bbb;
-  transition: color 0.2s ease;
-}
-
-body.dark a:hover {
-  color: #99cfff;
 }
 
 button:hover {
@@ -120,4 +76,21 @@ button:hover {
 
 body.dark button:hover {
   background-color: #555;
+}
+
+footer {
+  margin-top: auto;
+  padding: 1rem;
+  text-align: center;
+}
+
+/* Płynna zmiana kolorów nagłówków */
+h1, h2, h3 {
+  transition: color 0.5s ease;
+}
+
+body.dark h1,
+body.dark h2,
+body.dark h3 {
+  color: #ddd;
 }
