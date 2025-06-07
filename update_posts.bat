@@ -1,8 +1,11 @@
 @echo off
 setlocal enabledelayedexpansion
 
-REM Plik wynikowy
-set "output=posts.json"
+REM Folder z wpisami
+set "posts_folder=wpisy"
+
+REM Plik wynikowy w folderze wpisy
+set "output=%posts_folder%\posts.json"
 
 REM Rozpocznij plik JSON
 echo [ > %output%
@@ -10,8 +13,8 @@ echo [ > %output%
 REM Zmienna kontrolna, żeby dodać przecinki między wpisami
 set first=1
 
-REM Pętla po plikach .html, pomijając index.html
-for /f "delims=" %%f in ('dir /b /o:n *.html ^| findstr /v /i "index.html"') do (
+REM Pętla po plikach .html w folderze wpisy, pomijając index.html
+for /f "delims=" %%f in ('dir /b /o:n "%posts_folder%\*.html" ^| findstr /v /i "index.html"') do (
     REM Plik aktualny: %%f
     REM Wyciągamy datę (pierwsze 10 znaków)
     set "fname=%%~nf"
@@ -30,8 +33,8 @@ for /f "delims=" %%f in ('dir /b /o:n *.html ^| findstr /v /i "index.html"') do 
         >> %output% echo ,
     )
 
-    REM Dodaj linię JSON
-    >> %output% echo     {"date": "!date!", "title": "!title!", "filename": "wpisy/%%f"}
+    REM Dodaj linię JSON — ścieżka w filename jest względna do głównego folderu
+    >> %output% echo     {"date": "!date!", "title": "!title!", "filename": "%posts_folder%/%%f"}
 )
 
 REM Zamknij tablicę JSON

@@ -28,23 +28,27 @@
   </footer>
 
   <script>
-    // Przykładowa lista wpisów — w praktyce możesz generować dynamicznie
-    const posts = [
-      { date: '2025-06-01', title: 'Pierwszy wpis', filename: 'wpisy/2025-06-01-pierwszy-wpis.html' },
-      { date: '2025-06-05', title: 'Drugi wpis', filename: 'wpisy/2025-06-05-drugi-wpis.html' },
-      { date: '2025-06-07', title: 'Trzeci wpis', filename: 'wpisy/2025-06-07-trzeci-wpis.html' }
-    ];
-
     const list = document.getElementById('posts-list');
 
-    posts.forEach(post => {
-      const li = document.createElement('li');
-      const a = document.createElement('a');
-      a.href = post.filename;
-      a.textContent = `${post.date} — ${post.title}`;
-      li.appendChild(a);
-      list.appendChild(li);
-    });
+    fetch('wpisy/posts.json')
+      .then(response => {
+        if (!response.ok) throw new Error('Błąd podczas pobierania pliku posts.json');
+        return response.json();
+      })
+      .then(posts => {
+        posts.forEach(post => {
+          const li = document.createElement('li');
+          const a = document.createElement('a');
+          a.href = post.filename;
+          a.textContent = `${post.date} — ${post.title}`;
+          li.appendChild(a);
+          list.appendChild(li);
+        });
+      })
+      .catch(error => {
+        console.error(error);
+        list.textContent = 'Nie udało się załadować listy wpisów.';
+      });
   </script>
 </body>
 </html>
