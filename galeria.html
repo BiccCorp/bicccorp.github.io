@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Galeria - BiccCorp</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="dark">
+  <header>
+    <h1>Galeria BiccCorp</h1>
+    <nav>
+      <a href="index.html">Strona główna</a>
+      <a href="o-mnie.html">O mnie</a>
+      <a href="wpisy.html">Wpisy</a>
+    </nav>
+  </header>
+
+  <main>
+    <h2>Zdjęcia</h2>
+    <ul id="gallery-list"></ul>
+  </main>
+
+  <footer>
+    <p>&copy; 2025 BiccCorp</p>
+  </footer>
+
+  <script>
+    fetch('galeria/images.json')
+      .then(res => res.json())
+      .then(images => {
+        images.sort((a, b) => new Date(b.date) - new Date(a.date));
+        const list = document.getElementById('gallery-list');
+        images.forEach(img => {
+          const li = document.createElement('li');
+          const link = document.createElement('a');
+          link.href = `galeria/${img.filename}`;
+          link.textContent = img.filename + ' (' + img.date + ')';
+          li.appendChild(link);
+          list.appendChild(li);
+        });
+      })
+      .catch(() => {
+        document.getElementById('gallery-list').textContent = 'Brak zdjęć lub problem z załadowaniem listy.';
+      });
+  </script>
+</body>
+</html>
