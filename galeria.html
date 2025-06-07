@@ -5,8 +5,44 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Galeria - BiccCorp</title>
   <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="style.css">
   <script src="fade.js"></script>
+  <style>
+    /* Styl na miniaturkę przy najechaniu (tooltip) */
+    .thumbnail-preview {
+      position: absolute;
+      display: none;
+      border: 1px solid #ccc;
+      background: #222;
+      padding: 4px;
+      z-index: 1000;
+      max-width: 200px;
+      max-height: 150px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.7);
+      pointer-events: none; /* żeby nie blokować kursora */
+    }
+
+    /* Lightbox - pełnoekranowy modal */
+    #lightbox {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.8);
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+    }
+    #lightbox img {
+      max-width: 90vw;
+      max-height: 90vh;
+      box-shadow: 0 0 20px #fff;
+      border-radius: 8px;
+    }
+    #lightbox.close-area {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body class="dark">
   <header>
@@ -27,7 +63,21 @@
     <p>&copy; 2025 BiccCorp</p>
   </footer>
 
+  <!-- Miniaturka tooltip -->
+  <div id="thumbnail-preview" class="thumbnail-preview"></div>
+
+  <!-- Lightbox modal -->
+  <div id="lightbox">
+    <div class="close-area"></div>
+    <img src="" alt="Podgląd zdjęcia" />
+  </div>
+
   <script>
+    const preview = document.getElementById('thumbnail-preview');
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = lightbox.querySelector('img');
+    const closeArea = lightbox.querySelector('.close-area');
+
     fetch('galeria/images.json')
       .then(res => res.json())
       .then(images => {
@@ -38,6 +88,30 @@
           const link = document.createElement('a');
           link.href = `galeria/${img.filename}`;
           link.textContent = img.filename + ' (' + img.date + ')';
+
+          // Pokaż miniaturkę po najechaniu
+          link.addEventListener('mouseenter', e => {
+            preview.style.display = 'block';
+            preview.style.left = e.pageX + 15 + 'px';
+            preview.style.top = e.pageY + 15 + 'px';
+            preview.innerHTML = `<img src="galeria/${img.filename}" alt="${img.filename}" style="max-width:200px; max-height:150px; border-radius:4px;">`;
+          });
+          link.addEventListener('mousemove', e => {
+            preview.style.left = e.pageX + 15 + 'px';
+            preview.style.top = e.pageY + 15 + 'px';
+          });
+          link.addEventListener('mouseleave', () => {
+            preview.style.display = 'none';
+            preview.innerHTML = '';
+          });
+
+          // Otwarcie lightboxa po kliknięciu, bez przeładowania strony
+          link.addEventListener('click', e => {
+            e.preventDefault();
+            lightboxImg.src = `galeria/${img.filename}`;
+            lightbox.style.display = 'flex';
+          });
+
           li.appendChild(link);
           list.appendChild(li);
         });
@@ -45,6 +119,20 @@
       .catch(() => {
         document.getElementById('gallery-list').textContent = 'Brak zdjęć lub problem z załadowaniem listy.';
       });
+
+    // Zamknięcie lightboxa po kliknięciu na tło
+    closeArea.addEventListener('click', () => {
+      lightbox.style.display = 'none';
+      lightboxImg.src = '';
+    });
+
+    // Zamknięcie lightboxa klawiszem ESC
+    window.addEventListener('keydown', e => {
+      if (e.key === "Escape" && lightbox.style.display === 'flex') {
+        lightbox.style.display = 'none';
+        lightboxImg.src = '';
+      }
+    });
   </script>
 </body>
 </html>
