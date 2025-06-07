@@ -30,19 +30,14 @@
       justify-content: center;
       align-items: center;
       z-index: 2000;
+      cursor: pointer;
     }
     #lightbox img {
       max-width: 90vw;
       max-height: 90vh;
       box-shadow: 0 0 20px #fff;
       border-radius: 8px;
-    }
-    #lightbox.close-area {
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      cursor: pointer;
-	  background: transparent;
-      z-index: 10;
+      cursor: default; /* żeby kliknięcie na obrazek nie wyglądało jak na przycisk */
     }
   </style>
 </head>
@@ -70,7 +65,6 @@
 
   <!-- Lightbox modal -->
   <div id="lightbox">
-    <div class="close-area"></div>
     <img src="" alt="Podgląd zdjęcia" />
   </div>
 
@@ -78,7 +72,6 @@
     const preview = document.getElementById('thumbnail-preview');
     const lightbox = document.getElementById('lightbox');
     const lightboxImg = lightbox.querySelector('img');
-    const closeArea = lightbox.querySelector('.close-area');
 
     fetch('galeria/images.json')
       .then(res => res.json())
@@ -122,10 +115,12 @@
         document.getElementById('gallery-list').textContent = 'Brak zdjęć lub problem z załadowaniem listy.';
       });
 
-    // Zamknięcie lightboxa po kliknięciu na tło
-    closeArea.addEventListener('click', () => {
-      lightbox.style.display = 'none';
-      lightboxImg.src = '';
+    // Zamknięcie lightboxa po kliknięciu na tło (poza obrazkiem)
+    lightbox.addEventListener('click', (e) => {
+      if (e.target === lightbox) {
+        lightbox.style.display = 'none';
+        lightboxImg.src = '';
+      }
     });
 
     // Zamknięcie lightboxa klawiszem ESC
