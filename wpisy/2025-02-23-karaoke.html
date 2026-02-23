@@ -12,7 +12,6 @@
       gap: 0.5rem;
       margin-bottom: 1.5rem;
     }
-
     .karaoke-search-box input {
       flex: 1;
       background: transparent;
@@ -27,7 +26,6 @@
     }
     .karaoke-search-box input:focus { opacity: 1; }
     .karaoke-search-box input::placeholder { opacity: 0.4; }
-
     .karaoke-search-box button {
       background: transparent;
       border: 1px solid currentColor;
@@ -41,7 +39,6 @@
       transition: opacity 0.2s;
     }
     .karaoke-search-box button:hover { opacity: 0.7; }
-    .karaoke-search-box button:disabled { opacity: 0.3; cursor: not-allowed; }
 
     #k-status {
       font-size: 0.85rem;
@@ -63,27 +60,16 @@
     }
     .k-result-card:hover { opacity: 1; }
     .k-result-card.active { opacity: 1; font-weight: bold; }
-
     .k-thumb {
-      width: 96px;
-      min-width: 96px;
-      height: 54px;
-      object-fit: cover;
-      display: block;
+      width: 96px; min-width: 96px; height: 54px;
+      object-fit: cover; display: block;
     }
-
     .k-card-info { flex: 1; overflow: hidden; }
     .k-card-title {
       font-size: 0.85rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .k-card-channel {
-      font-size: 0.75rem;
-      opacity: 0.5;
-      margin-top: 0.2rem;
-    }
+    .k-card-channel { font-size: 0.75rem; opacity: 0.5; margin-top: 0.2rem; }
 
     #k-player-section { display: none; }
     #k-player-section.visible { display: block; margin-top: 2rem; }
@@ -94,9 +80,7 @@
       gap: 1.5rem;
       align-items: start;
     }
-    @media (max-width: 680px) {
-      .k-player-grid { grid-template-columns: 1fr; }
-    }
+    @media (max-width: 680px) { .k-player-grid { grid-template-columns: 1fr; } }
 
     .k-video-wrapper {
       position: relative;
@@ -104,11 +88,24 @@
       background: #000;
     }
     .k-video-wrapper iframe {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      border: none;
+      position: absolute; inset: 0;
+      width: 100%; height: 100%; border: none;
+    }
+
+    /* Flash overlay on video */
+    .k-flash {
+      position: absolute; inset: 0;
+      pointer-events: none;
+      background: currentColor;
+      opacity: 0;
+      z-index: 10;
+    }
+    .k-flash.bang {
+      animation: flashbang 0.35s ease-out forwards;
+    }
+    @keyframes flashbang {
+      0%   { opacity: 0.45; }
+      100% { opacity: 0; }
     }
 
     .k-progress-outer {
@@ -118,20 +115,53 @@
       margin-top: 0.4rem;
     }
     .k-progress-inner {
-      height: 100%;
-      background: currentColor;
-      opacity: 1;
-      width: 0%;
-      transition: width 0.5s linear;
+      height: 100%; background: currentColor; opacity: 1;
+      width: 0%; transition: width 0.3s ease;
     }
 
+    /* Next line button */
+    .k-next-btn {
+      display: block;
+      width: 100%;
+      margin-top: 0.7rem;
+      background: transparent;
+      border: 1px solid currentColor;
+      color: inherit;
+      font: inherit;
+      font-size: 1rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 0.7rem;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      position: relative;
+      overflow: hidden;
+    }
+    .k-next-btn:hover { opacity: 0.75; }
+    .k-next-btn:active { transform: scale(0.97); }
+    .k-next-btn:disabled { opacity: 0.2; cursor: not-allowed; }
+
+    /* ripple inside button */
+    .k-next-btn .ripple {
+      position: absolute;
+      border-radius: 50%;
+      width: 10px; height: 10px;
+      background: currentColor;
+      opacity: 0.4;
+      transform: scale(0);
+      animation: rippleAnim 0.5s linear forwards;
+      pointer-events: none;
+    }
+    @keyframes rippleAnim {
+      to { transform: scale(30); opacity: 0; }
+    }
+
+    /* Lyrics */
     .k-lyrics-box {
       border: 1px solid currentColor;
       height: 400px;
-      display: flex;
-      flex-direction: column;
+      display: flex; flex-direction: column;
     }
-
     .k-lyrics-header {
       padding: 0.5rem 0.8rem;
       border-bottom: 1px solid currentColor;
@@ -140,10 +170,8 @@
       letter-spacing: 0.12em;
       opacity: 0.5;
     }
-
     .k-lyrics-scroll {
-      flex: 1;
-      overflow-y: auto;
+      flex: 1; overflow-y: auto;
       padding: 0.8rem 1rem;
       scroll-behavior: smooth;
     }
@@ -154,59 +182,63 @@
       display: block;
       font-size: 0.88rem;
       line-height: 1.85;
-      opacity: 0.3;
+      opacity: 0.25;
       cursor: pointer;
-      transition: opacity 0.3s;
+      transition: opacity 0.25s, transform 0.25s;
     }
-    .k-lyric-line:hover { opacity: 0.6; }
-    .k-lyric-line.active { opacity: 1; font-style: italic; }
+    .k-lyric-line:hover { opacity: 0.55; }
     .k-lyric-line.past { opacity: 0.2; }
+    .k-lyric-line.active {
+      opacity: 1;
+      font-style: italic;
+      transform: translateX(6px);
+    }
+    /* pop animation when line becomes active */
+    .k-lyric-line.pop {
+      animation: linepop 0.3s ease-out;
+    }
+    @keyframes linepop {
+      0%   { letter-spacing: 0.08em; }
+      40%  { letter-spacing: 0.14em; }
+      100% { letter-spacing: normal; }
+    }
 
     .k-lyrics-msg {
       padding: 1.5rem 1rem;
-      font-size: 0.8rem;
-      opacity: 0.5;
-      font-style: italic;
-      line-height: 1.8;
+      font-size: 0.8rem; opacity: 0.5;
+      font-style: italic; line-height: 1.8;
     }
 
+    /* API key box */
     .k-apikey-box {
       border: 1px solid currentColor;
       border-left-width: 3px;
       padding: 0.8rem 1rem;
       margin-bottom: 1.5rem;
-      font-size: 0.8rem;
-      opacity: 0.75;
-      line-height: 1.8;
+      font-size: 0.8rem; opacity: 0.75; line-height: 1.8;
     }
     .k-apikey-box a { color: inherit; }
-    .k-apikey-row {
-      display: flex;
-      gap: 0.5rem;
-      margin-top: 0.6rem;
-    }
+    .k-apikey-row { display: flex; gap: 0.5rem; margin-top: 0.6rem; }
     .k-apikey-row input {
-      flex: 1;
-      background: transparent;
-      border: 1px solid currentColor;
-      color: inherit;
-      font: inherit;
-      font-size: 0.8rem;
-      padding: 0.4rem 0.7rem;
-      outline: none;
+      flex: 1; background: transparent;
+      border: 1px solid currentColor; color: inherit;
+      font: inherit; font-size: 0.8rem;
+      padding: 0.4rem 0.7rem; outline: none;
     }
     .k-apikey-row button {
-      background: transparent;
-      border: 1px solid currentColor;
-      color: inherit;
-      font: inherit;
-      font-size: 0.75rem;
-      padding: 0.4rem 0.8rem;
-      cursor: pointer;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
+      background: transparent; border: 1px solid currentColor;
+      color: inherit; font: inherit; font-size: 0.75rem;
+      padding: 0.4rem 0.8rem; cursor: pointer;
+      text-transform: uppercase; letter-spacing: 0.08em;
     }
     .k-apikey-row button:hover { opacity: 0.6; }
+
+    /* Keyboard hint */
+    .k-hint {
+      font-size: 0.75rem; opacity: 0.35;
+      margin-top: 0.4rem; text-align: center;
+      letter-spacing: 0.05em;
+    }
 
     .dots::after {
       content: '';
@@ -234,7 +266,7 @@
   <main style="max-width: 900px; padding: 1rem;">
     <article>
       <p><em>Data publikacji: 2025-06-07</em></p>
-      <p>Wyszukaj piosenkę, wybierz filmik z YouTube i śpiewaj razem z automatycznie podświetlanym tekstem.</p>
+      <p>Wyszukaj piosenkę, wybierz filmik z YouTube i śpiewaj razem z tekstem. Kliknij przycisk (lub naciśnij <strong>Spację</strong>) aby przejść do następnej linijki.</p>
 
       <div class="k-apikey-box" id="k-apikey-box">
         <strong>Wymagany klucz YouTube API v3</strong> —
@@ -248,7 +280,7 @@
 
       <div class="karaoke-search-box">
         <input type="text" id="k-search" placeholder="Artysta - Tytuł piosenki…" />
-        <button id="k-search-btn" onclick="kSearch()">Szukaj</button>
+        <button onclick="kSearch()">Szukaj</button>
       </div>
 
       <div id="k-status"></div>
@@ -256,20 +288,30 @@
 
       <div id="k-player-section">
         <div class="k-player-grid">
+
+          <!-- LEFT: video + button -->
           <div>
             <div class="k-video-wrapper">
               <iframe id="k-iframe" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+              <div class="k-flash" id="k-flash"></div>
             </div>
             <div class="k-progress-outer">
               <div class="k-progress-inner" id="k-progress"></div>
             </div>
+            <button class="k-next-btn" id="k-next-btn" onclick="nextLine(event)" disabled>
+              ▶ Następna linijka
+            </button>
+            <div class="k-hint">[ Spacja ]</div>
           </div>
+
+          <!-- RIGHT: lyrics -->
           <div class="k-lyrics-box">
             <div class="k-lyrics-header">♪ Tekst piosenki</div>
             <div class="k-lyrics-scroll" id="k-lyrics">
               <div class="k-lyrics-msg">Wybierz filmik aby załadować tekst.</div>
             </div>
           </div>
+
         </div>
       </div>
 
@@ -283,10 +325,7 @@
   <script>
     let apiKey = localStorage.getItem('yt_api_key') || '';
     let plainLines = [];
-    let syncInterval = null;
-    let syncStart = null;
     let currentLine = -1;
-    const SEC_PER_LINE = 3.5;
 
     function updateApiBox() {
       document.getElementById('k-apikey-box').style.display = apiKey ? 'none' : 'block';
@@ -306,6 +345,16 @@
       if (e.key === 'Enter') kSearch();
     });
 
+    // Spacebar = next line (only when player visible)
+    document.addEventListener('keydown', e => {
+      if (e.code === 'Space' && document.getElementById('k-player-section').classList.contains('visible')) {
+        // Don't fire if user is typing in an input
+        if (document.activeElement.tagName === 'INPUT') return;
+        e.preventDefault();
+        nextLine();
+      }
+    });
+
     async function kSearch() {
       const q = document.getElementById('k-search').value.trim();
       if (!q) return;
@@ -314,7 +363,8 @@
       setStatus('Szukam…');
       document.getElementById('k-results').innerHTML = '';
       document.getElementById('k-player-section').classList.remove('visible');
-      clearSync();
+      plainLines = [];
+      currentLine = -1;
 
       const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&type=video&videoCategoryId=10&maxResults=6&key=${apiKey}`;
 
@@ -338,7 +388,6 @@
         const title = item.snippet.title;
         const channel = item.snippet.channelTitle;
         const thumb = item.snippet.thumbnails?.default?.url || '';
-
         const card = document.createElement('div');
         card.className = 'k-result-card';
         card.innerHTML = `
@@ -356,23 +405,22 @@
     async function loadVideo(videoId, title, cardEl, query) {
       document.querySelectorAll('.k-result-card').forEach(c => c.classList.remove('active'));
       cardEl.classList.add('active');
-
       document.getElementById('k-player-section').classList.add('visible');
       document.getElementById('k-player-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
       document.getElementById('k-iframe').src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1`;
-
+      document.getElementById('k-next-btn').disabled = true;
+      currentLine = -1;
+      updateProgress(0);
       await loadLyrics(title, query);
     }
 
     async function loadLyrics(title, query) {
       const scroll = document.getElementById('k-lyrics');
       scroll.innerHTML = '<div class="k-lyrics-msg">Wczytywanie tekstu<span class="dots"></span></div>';
-      clearSync();
       plainLines = [];
 
       let artist = '', song = '';
       const q = query.replace(/ lyrics| karaoke/gi, '').trim();
-
       if (q.includes(' - ')) {
         [artist, song] = q.split(' - ', 2);
       } else {
@@ -385,7 +433,6 @@
           song = parts.slice(1).join(' ') || q;
         }
       }
-
       artist = artist.trim(); song = song.trim();
 
       if (!artist || !song) {
@@ -415,57 +462,69 @@
         el.className = 'k-lyric-line';
         el.textContent = line;
         el.dataset.index = i;
+        // clicking a line jumps to it
+        el.onclick = () => jumpToLine(i);
         scroll.appendChild(el);
         scroll.appendChild(document.createElement('br'));
       });
-      startSync();
-    }
-
-    function startSync() {
-      clearSync();
-      syncStart = Date.now();
+      document.getElementById('k-next-btn').disabled = false;
       currentLine = -1;
-      syncInterval = setInterval(() => {
-        if (!plainLines.length) return;
-        const idx = Math.floor((Date.now() - syncStart) / 1000 / SEC_PER_LINE);
-        if (idx !== currentLine && idx < plainLines.length) {
-          currentLine = idx;
-          highlightLine(idx);
-          updateProgress(idx / plainLines.length);
-        }
-      }, 500);
     }
 
-    function highlightLine(idx) {
-      document.querySelectorAll('.k-lyric-line').forEach((el, i) => {
-        el.classList.remove('active', 'past');
+    function nextLine(event) {
+      if (!plainLines.length) return;
+
+      // Ripple effect on button
+      if (event) {
+        const btn = document.getElementById('k-next-btn');
+        const rect = btn.getBoundingClientRect();
+        const ripple = document.createElement('span');
+        ripple.className = 'ripple';
+        ripple.style.left = ((event.clientX || rect.left + rect.width/2) - rect.left - 5) + 'px';
+        ripple.style.top  = ((event.clientY || rect.top  + rect.height/2) - rect.top  - 5) + 'px';
+        btn.appendChild(ripple);
+        setTimeout(() => ripple.remove(), 600);
+      }
+
+      // Flash on video
+      triggerFlash();
+
+      const next = currentLine + 1;
+      if (next >= plainLines.length) {
+        // end of song
+        document.getElementById('k-next-btn').disabled = true;
+        return;
+      }
+      jumpToLine(next);
+    }
+
+    function jumpToLine(idx) {
+      currentLine = idx;
+      const lines = document.querySelectorAll('.k-lyric-line');
+      lines.forEach((el, i) => {
+        el.classList.remove('active', 'past', 'pop');
         if (i < idx) el.classList.add('past');
         if (i === idx) {
           el.classList.add('active');
+          // force reflow so animation re-triggers
+          void el.offsetWidth;
+          el.classList.add('pop');
           el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
       });
+      updateProgress(idx / (plainLines.length - 1));
+    }
+
+    function triggerFlash() {
+      const flash = document.getElementById('k-flash');
+      flash.classList.remove('bang');
+      void flash.offsetWidth; // reflow
+      flash.classList.add('bang');
     }
 
     function updateProgress(r) {
-      document.getElementById('k-progress').style.width = (r * 100) + '%';
+      document.getElementById('k-progress').style.width = Math.min(r * 100, 100) + '%';
     }
-
-    function clearSync() {
-      if (syncInterval) clearInterval(syncInterval);
-      syncInterval = null;
-      document.getElementById('k-progress').style.width = '0%';
-    }
-
-    document.getElementById('k-lyrics').addEventListener('click', e => {
-      const line = e.target.closest('.k-lyric-line');
-      if (!line) return;
-      const idx = parseInt(line.dataset.index);
-      if (isNaN(idx)) return;
-      syncStart = Date.now() - idx * SEC_PER_LINE * 1000;
-      currentLine = idx;
-      highlightLine(idx);
-    });
 
     function setStatus(msg, err = false) {
       const el = document.getElementById('k-status');
