@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BiccInvaders</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script src="../fade.js"></script>
+  <style>
+    #game-container {
+      position: relative;
+      width: 100%;
+      max-width: 600px;
+      margin: 20px auto;
+      border: 4px solid #444;
+      background: #000;
+      image-rendering: pixelated;
+      overflow: hidden;
+    }
+    canvas { display: block; width: 100%; height: auto; background: #000; }
+    .ui-overlay {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: #0f0;
+      font-family: 'Courier New', monospace;
+      pointer-events: none;
+      text-shadow: 2px 2px #000;
+      z-index: 10;
+    }
+    .energy-bar-bg { width: 150px; height: 12px; background: #222; border: 2px solid #555; margin-top: 5px; }
+    #energy-fill { width: 100%; height: 100%; background: #0af; transition: width 0.1s; }
+    #game-menu {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.9);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      z-index: 20;
+    }
+    #game-menu button { padding: 12px 24px; font-family: 'Courier New', monospace; background: #0f0; border: none; cursor: pointer; font-weight: bold; }
+  </style>
+</head>
+<body class="dark">
+  <header>
+    <h1>BiccInvaders</h1>
+    <nav>
+      <a href="../index.html">Strona główna</a>
+      <a href="../o-mnie.html">O mnie</a>
+      <a href="../galeria.html">Galeria</a>
+      <a href="../wpisy.html">Wpisy</a>
+    </nav>
+  </header>
+
+  <main style="max-width: 700px; padding: 1rem;">
+    <article>
+      <div id="game-container">
+        <div id="game-menu">
+          <h2>BICC INVADERS</h2>
+          <p id="last-score" style="margin-bottom: 15px;"></p>
+          <button onclick="startGame()">START MISJI</button>
+        </div>
+        <div class="ui-overlay">
+          <div>SCORE: <span id="score">0</span></div>
+          <div class="energy-bar-bg"><div id="energy-fill"></div></div>
+        </div>
+        <canvas id="gameCanvas" width="400" height="500"></canvas>
+      </div>
+    </article>
+  </main>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const energyEl = document.getElementById('energy-fill');
+    const menuEl = document.getElementById('game-menu');
+    const lastScoreEl = document.getElementById('last-score');
+
+    let score = 0, energy = 100, gameRunning = false, keys = {};
+    let bullets = [], enemyBullets = [], enemies = [], meteors = [], stars = [], particles = [], trails = [];
+
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    function playSound(freq, type, duration, vol, slide = true) {
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        if(slide) osc.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + duration);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(); osc.stop(audioCtx.currentTime + duration);
+      } catch(e) {}
+    }
+
+    const player = { x: 185, y: 440, w: 30, h: 35, speed: 3, shieldActive: false };
+
+    window.addEventListener('keydown', e => keys[e.code] = true);
+    window.addEventListener('keyup', e => keys[e.code] = false);
+
+    function startGame() {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      score = 0; energy = 100; gameRunning = true;
+      bullets = []; enemyBullets = []; enemies = []; meteors = []; trails = []; particles = [];
+      menuEl.style.display = 'none';
+      playSound(150, 'square', 0.3, 0.1);
+    }
+
+    function createExplosion(x, y, color) {
+      playSound(60, 'sawtooth', 0.25, 0.15);
+      for (let i = 0; i < 12; i++) {
+        particles.push({ x, y, size: 3+Math.random()*3, color, speedX: (Math.random()-0.5)*7, speedY: (Math.random()-0.5)*7, life: 1.0, decay: 0.03 });
+      }
+    }
+
+    for(let i=0; i<40; i++) stars.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, size: Math.random()*2, speed: 0.1 + Math.random()*0.5 });
+
+    function update() {
+      if (!gameRunning) return;
+
+      if (keys['ArrowLeft'] && player.x > 0) player.x -= player.speed;
+      if (keys['ArrowRight'] && player.x < canvas.width - player.w) player.x += player.speed;
+
+      if (keys['KeyX'] && energy > 1) {
+        if (!player.shieldActive) playSound(50, 'triangle', 0.2, 0.2, false);
+        player.shieldActive = true; energy -= 0.9;
+      } else {
+        player.shieldActive = false; if (energy < 100) energy += 0.4;
+      }
+
+      if (keys['KeyZ'] && !keys.lastZ && energy >= 30) {
+        bullets.push({ x: player.x + player.w/2 - 2, y: player.y, w: 4, h: 12, vx: 0, vy: -8 });
+        energy -= 30; keys.lastZ = true;
+        playSound(450, 'square', 0.1, 0.05);
+      }
+      if (!keys['KeyZ']) keys.lastZ = false;
+
+      // Spawning z limiterem
+      if (enemies.length < 6 && Math.random() < 0.012) {
+        const colors = [
+          {main: '#f0f', dark: '#808', light: '#f9f'},
+          {main: '#0ff', dark: '#088', light: '#9ff'},
+          {main: '#ff0', dark: '#880', light: '#ff9'}
+        ];
+        enemies.push({ 
+          x: Math.random()*(canvas.width-30), y: -40, w: 30, h: 25, 
+          speed: (0.54 + (score/6000)), // Wolniej o 10% (było 0.6)
+          colors: colors[Math.floor(Math.random()*colors.length)],
+          lastShot: Date.now() + Math.random()*1500 // Losowy offset na start
+        });
+      }
+
+      if (meteors.length < 3 && Math.random() < 0.003) {
+        meteors.push({ xBase: Math.random()*300+50, y: -60, w: 40, h: 40, speed: 1.0, angle: 0, amp: 50 });
+      }
+
+      stars.forEach(s => { s.y += s.speed; if (s.y > canvas.height) s.y = 0; });
+      trails.forEach((t, i) => { t.life -= 0.02; if (t.life <= 0) trails.splice(i, 1); });
+      particles.forEach((p, i) => { p.x += p.speedX; p.y += p.speedY; p.life -= p.decay; if (p.life <= 0) particles.splice(i, 1); });
+
+      // Bullets Update
+      for (let i = bullets.length - 1; i >= 0; i--) {
+        let b = bullets[i]; b.y += b.vy;
+        if (b.y < -50) { bullets.splice(i, 1); continue; }
+        for (let m of meteors) {
+          if (b.x < m.x + m.w && b.x + b.w > m.x && b.y < m.y + m.h && b.y + b.h > m.y) {
+            bullets.splice(i, 1); break;
+          }
+        }
+      }
+
+      // Enemy Bullets Update
+      for (let i = enemyBullets.length - 1; i >= 0; i--) {
+        let eb = enemyBullets[i]; eb.y += eb.vy;
+        if (eb.y > 550) { enemyBullets.splice(i, 1); continue; }
+        if (eb.x < player.x + player.w && eb.x + eb.w > player.x && eb.y < player.y + player.h && eb.y + eb.h > player.y) {
+          if (player.shieldActive) { playSound(120, 'sine', 0.1, 0.1); enemyBullets.splice(i, 1); }
+          else { endGame(); return; }
+        }
+      }
+
+      // Meteors Update
+      for (let i = meteors.length - 1; i >= 0; i--) {
+        let m = meteors[i];
+        m.y += m.speed; m.angle += 0.015; m.x = m.xBase + Math.sin(m.angle)*m.amp;
+        if (m.y > 550) { meteors.splice(i, 1); continue; }
+        if (m.x < player.x + player.w && m.x + m.w > player.x && m.y < player.y + player.h && m.y + m.h > player.y) {
+          if (player.shieldActive) { createExplosion(m.x+m.w/2, m.y+m.h/2, '#666'); meteors.splice(i, 1); }
+          else { endGame(); return; }
+        }
+      }
+
+      // Enemies Update
+      const now = Date.now();
+      for (let i = enemies.length - 1; i >= 0; i--) {
+        let en = enemies[i];
+        en.y += en.speed;
+        
+        // Strzelanie z limiterem 1.5s
+        if (now - en.lastShot > 1500 && Math.random() < 0.02) {
+          enemyBullets.push({ x: en.x+en.w/2 - 2, y: en.y+en.h, w: 4, h: 10, vy: 2.5 });
+          en.lastShot = now;
+        }
+
+        if (en.y > 550) { enemies.splice(i, 1); continue; }
+
+        if (en.x < player.x + player.w && en.x + en.w > player.x && en.y < player.y + player.h && en.y + en.h > player.y) {
+          if (player.shieldActive) { createExplosion(en.x+en.w/2, en.y+en.h/2, en.colors.main); enemies.splice(i, 1); score += 10; }
+          else { endGame(); return; }
+        }
+
+        for (let j = bullets.length - 1; j >= 0; j--) {
+          let b = bullets[j];
+          if (b.x < en.x + en.w && b.x + b.w > en.x && b.y < en.y + en.h && b.y + b.h > en.y) {
+            createExplosion(en.x+en.w/2, en.y+en.h/2, en.colors.main);
+            enemies.splice(i, 1); bullets.splice(j, 1); score += 25; break;
+          }
+        }
+      }
+
+      scoreEl.innerText = score;
+      energyEl.style.width = energy + '%';
+    }
+
+    function endGame() {
+      gameRunning = false;
+      playSound(40, 'square', 0.8, 0.2, true);
+      menuEl.style.display = 'flex';
+      lastScoreEl.innerText = "SCORE: " + score;
+    }
+
+    function draw() {
+      ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#fff'; stars.forEach(s => ctx.fillRect(s.x, s.y, s.size, s.size));
+      
+      // Detailed Meteors
+      meteors.forEach(m => {
+        ctx.fillStyle = '#444'; ctx.fillRect(m.x+5, m.y+5, m.w-10, m.h-10); // Base shadow
+        ctx.fillStyle = '#666'; ctx.fillRect(m.x+10, m.y, m.w-20, m.h); ctx.fillRect(m.x, m.y+10, m.w, m.h-20); // Shape
+        ctx.fillStyle = '#888'; ctx.fillRect(m.x+5, m.y+5, 8, 8); ctx.fillRect(m.x+25, m.y+20, 6, 6); // Craters
+      });
+
+      // Detailed Enemies
+      enemies.forEach(en => {
+        const c = en.colors;
+        ctx.fillStyle = c.dark; ctx.fillRect(en.x, en.y+5, en.w, en.h-10); // Wings
+        ctx.fillStyle = c.main; ctx.fillRect(en.x+8, en.y, en.w-16, en.h); // Hull
+        ctx.fillStyle = c.light; ctx.fillRect(en.x+12, en.y+4, 6, 4); // Cockpit/Light
+      });
+      
+      bullets.forEach(b => { ctx.fillStyle = '#fff'; ctx.fillRect(b.x, b.y, b.w, b.h); });
+      enemyBullets.forEach(eb => { ctx.fillStyle = '#f0f'; ctx.fillRect(eb.x, eb.y, eb.w, eb.h); });
+      particles.forEach(p => { ctx.globalAlpha = p.life; ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.size, p.size); });
+      ctx.globalAlpha = 1.0;
+
+      // Detailed Player
+      ctx.fillStyle = '#050'; ctx.fillRect(player.x, player.y+15, 30, 10); // Wings dark
+      ctx.fillStyle = '#0a0'; ctx.fillRect(player.x+5, player.y+5, 20, 25); // Main Body
+      ctx.fillStyle = '#0f0'; ctx.fillRect(player.x+12, player.y, 6, 15); // Nose
+      ctx.fillStyle = '#0ff'; ctx.globalAlpha = 0.6; ctx.fillRect(player.x+13, player.y+8, 4, 6); // Cockpit glass
+      ctx.globalAlpha = 1.0;
+
+      if (player.shieldActive) {
+        ctx.strokeStyle = '#0af'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(player.x+15, player.y+15, 25, 0, Math.PI*2); ctx.stroke();
+      }
+    }
+
+    function loop() { update(); draw(); requestAnimationFrame(loop); }
+    loop();
+  </script>
+
+  <footer>
+    <p>© 2025 BiccCorp</p>
+  </footer>
+</body>
+</html>

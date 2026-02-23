@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Test refleksu - BiccCorp Blog</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script src="../fade.js"></script>
+
+  <style>
+    .reflex-box {
+      width: 100%;
+      max-width: 400px;
+      height: 200px;
+      margin: 1rem 0;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.1s, transform 0.05s;
+      border: 2px solid #555;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: white;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+      user-select: none;
+    }
+    .reflex-box:active { transform: scale(0.98); }
+    
+    #timer-display {
+      font-size: 2.5rem;
+      font-family: monospace;
+      display: none; /* Ukryty domyślnie, sterowany checkboxem */
+    }
+
+    .status-text { font-size: 1.2rem; margin-bottom: 5px; }
+
+    .controls { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; margin-bottom: 1rem; }
+    #lista { list-style: none; padding: 0; }
+    #lista li { background: rgba(255,255,255,0.1); margin: 5px 0; padding: 8px; border-radius: 4px; }
+  </style>
+
+  <script>
+    let startTime;
+    let timeout;
+    let requestID;
+    let aktywny = false;
+    let moznaKlikac = false;
+    let czasy = [];
+
+    function updateTimer() {
+      if (moznaKlikac) {
+        const now = performance.now();
+        const diff = now - startTime;
+        document.getElementById("timer-display").innerText = diff.toFixed(0) + " ms";
+        requestID = requestAnimationFrame(updateTimer);
+      }
+    }
+
+    function startTest() {
+      const box = document.getElementById("box");
+      const kolorStart = document.getElementById("kolorStart").value;
+      const showTimer = document.getElementById("showTimer").checked;
+
+      if (aktywny || moznaKlikac) return;
+      if (czasy.length >= 5) return;
+
+      aktywny = true;
+      moznaKlikac = false;
+      
+      box.style.background = kolorStart;
+      document.getElementById("msg").innerText = "CZEKAJ...";
+      document.getElementById("timer-display").innerText = "0 ms";
+      document.getElementById("timer-display").style.display = showTimer ? "block" : "none";
+      document.getElementById("status").innerText = "Skupienie...";
+
+      const opoznienie = Math.random() * 2500 + 1000;
+
+      timeout = setTimeout(() => {
+        const kolorKlik = document.getElementById("kolorKlik").value;
+        box.style.background = kolorKlik;
+        document.getElementById("msg").innerText = "KLIKAJ!";
+        moznaKlikac = true;
+        startTime = performance.now();
+        if (showTimer) requestID = requestAnimationFrame(updateTimer);
+      }, opoznienie);
+    }
+
+    function klikniecie() {
+      const box = document.getElementById("box");
+
+      if (aktywny && !moznaKlikac) {
+        clearTimeout(timeout);
+        cancelAnimationFrame(requestID);
+        aktywny = false;
+        box.style.background = "#ff4444";
+        document.getElementById("msg").innerText = "ZA WCZEŚNIE!";
+        document.getElementById("timer-display").style.display = "none";
+        document.getElementById("status").innerText = "Spaliłeś! Spróbuj ponownie.";
+        return;
+      }
+
+      if (moznaKlikac) {
+        cancelAnimationFrame(requestID);
+        const reakcja = performance.now() - startTime;
+        czasy.push(reakcja);
+
+        aktywny = false;
+        moznaKlikac = false;
+
+        document.getElementById("msg").innerText = "WYNIK:";
+        document.getElementById("timer-display").innerText = reakcja.toFixed(0) + " ms";
+        document.getElementById("timer-display").style.display = "block";
+        document.getElementById("status").innerText = "Kliknij Start dla kolejnej próby.";
+        
+        aktualizujListe();
+        if (czasy.length === 5) liczSrednia();
+      }
+    }
+
+    function aktualizujListe() {
+      const lista = document.getElementById("lista");
+      lista.innerHTML = czasy.map((c, i) => `<li>Próba ${i + 1}: <strong>${c.toFixed(0)} ms</strong></li>`).join("");
+    }
+
+    function liczSrednia() {
+      const sorted = [...czasy].sort((a, b) => a - b);
+      sorted.shift(); sorted.pop();   
+      const avg = sorted.reduce((a, b) => a + b, 0) / 3;
+      document.getElementById("srednia").innerHTML = `<div style="border: 1px solid #00ff88; padding: 10px; border-radius: 8px;">Średnia Ao5: ${avg.toFixed(0)} ms</div>`;
+    }
+
+    function resetTest() {
+      czasy = [];
+      aktywny = false;
+      moznaKlikac = false;
+      clearTimeout(timeout);
+      cancelAnimationFrame(requestID);
+      document.getElementById("lista").innerHTML = "";
+      document.getElementById("srednia").innerHTML = "";
+      document.getElementById("status").innerText = "Zresetowano.";
+      document.getElementById("box").style.background = "#444";
+      document.getElementById("msg").innerText = "KLIKNIJ START";
+      document.getElementById("timer-display").style.display = "none";
+    }
+  </script>
+</head>
+
+<body class="dark">
+  <header>
+    <h1>Test refleksu</h1>
+    <nav>
+      <a href="../index.html">Strona główna</a>
+      <a href="../o-mnie.html">O mnie</a>
+      <a href="../galeria.html">Galeria</a>
+      <a href="../wpisy.html">Wpisy</a>
+    </nav>
+  </header>
+
+  <main style="max-width: 700px; padding: 1rem;">
+    <article>
+      <p><em>Data publikacji: 2025-02-23</em></p>
+      <h2>Test refleksu z zegarem</h2>
+      
+      <div class="controls">
+        <div style="margin-bottom: 10px;">
+            <label><input type="checkbox" id="showTimer" checked> Pokaż stoper w trakcie testu</label>
+        </div>
+        <label>Kolor startu: <input type="color" id="kolorStart" value="#444444"></label>
+        &nbsp;
+        <label>Kolor sygnału: <input type="color" id="kolorKlik" value="#00ff88"></label>
+      </div>
+
+      <div id="box" class="reflex-box" onclick="klikniecie()" style="background:#444;">
+        <div id="msg" class="status-text">KLIKNIJ START</div>
+        <div id="timer-display">0 ms</div>
+      </div>
+
+      <button onclick="startTest()">Start</button>
+      <button onclick="resetTest()">Reset</button>
+
+      <p id="status">Skonfiguruj opcje i zacznij.</p>
+      <ul id="lista"></ul>
+      <p id="srednia"></p>
+    </article>
+  </main>
+
+  <footer>
+    <p>© 2025 BiccCorp</p>
+  </footer>
+</body>
+</html>

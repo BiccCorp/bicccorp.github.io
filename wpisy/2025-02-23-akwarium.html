@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Akwarium - BiccCorp Blog</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script src="../fade.js"></script>
+  <style>
+    /* ORYGINALNY STYL Z PIERWSZEGO KODU - ZACHOWANY W CAŁOŚCI */
+    #aquarium-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 650px;
+      margin: 20px auto;
+      border: 8px solid #34495e;
+      border-radius: 4px;
+      background: linear-gradient(to bottom, #1a4a6e 0%, #05192d 100%);
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      image-rendering: pixelated;
+    }
+    /* MAŁE UZUPEŁNIENIE DLA RESPONSYWNOŚCI */
+    main {
+      max-width: 700px;
+      padding: 1rem;
+    }
+  </style>
+</head>
+<body class="dark">
+  <header>
+    <h1>Akwarium</h1>
+    <nav>
+      <a href="../index.html">Strona główna</a>
+      <a href="../o-mnie.html">O mnie</a>
+      <a href="../galeria.html">Galeria</a>
+      <a href="../wpisy.html">Wpisy</a>
+    </nav>
+  </header>
+
+  <main style="max-width: 700px; padding: 1rem;">
+    <article>
+      <p><em>Data publikacji: 2026-02-23</em></p>
+      
+      <div id="aquarium-wrapper">
+        <canvas id="aquariumCanvas" width="600" height="400"></canvas>
+      </div>
+      
+      <h2>Akwarium</h2>
+      <p>Animowane na żywo akwarium z detalami.</p>
+    </article>
+  </main>
+
+  <script>
+    (function() {
+      const canvas = document.getElementById('aquariumCanvas');
+      if (!canvas) return; // Zabezpieczenie
+      
+      const ctx = canvas.getContext('2d');
+      
+      // Wymiary canvas
+      const W = 600, H = 400;
+      canvas.width = W;
+      canvas.height = H;
+
+      // =============================================
+      // AWANGARDOWE AKWARIUM - TĘCZOWE RYBY I DUŻE ŚWIATŁA
+      // =============================================
+
+      // Klasa ryby - TĘCZOWE SPEKTRUM
+      class Fish {
+        constructor() {
+          this.reset();
+        }
+        
+        reset() {
+          this.x = Math.random() * W;
+          this.y = 80 + Math.random() * 250;
+          this.targetY = this.y;
+          this.size = 14 + Math.random() * 12;
+          this.direction = Math.random() > 0.5 ? 1 : -1;
+          this.speed = 0.15 + Math.random() * 0.2;
+          
+          // TĘCZOWE KOLORY - pełne spektrum
+          this.hueShift = Math.random() * 360; // Startowy losowy kolor
+          this.hueSpeed = 0.002 + Math.random() * 0.003; // Szybkość zmiany koloru
+          
+          // Zachowanie
+          this.stateTimer = 50 + Math.random() * 150;
+          this.speedMod = 1;
+          this.laziness = 0.2 + Math.random() * 0.6;
+          this.phase = Math.random() * Math.PI * 2;
+        }
+
+        update() {
+          this.stateTimer--;
+          if (this.stateTimer <= 0) {
+            this.speedMod = Math.random() < this.laziness ? 0.2 : 1.2;
+            this.stateTimer = 80 + Math.random() * 200;
+            this.targetY = 80 + Math.random() * 250;
+          }
+
+          this.x += this.speed * this.speedMod * this.direction;
+          this.y += (this.targetY - this.y) * 0.005;
+          
+          // TĘCZOWA ZMIANA KOLORU - płynne przejście przez wszystkie barwy
+          this.hueShift += this.hueSpeed;
+          if (this.hueShift > 360) this.hueShift -= 360;
+
+          if (this.x > W + 30) {
+            this.x = -30;
+            this.targetY = 80 + Math.random() * 250;
+          }
+          if (this.x < -30) {
+            this.x = W + 30;
+            this.targetY = 80 + Math.random() * 250;
+          }
+        }
+
+        draw(ctx, time) {
+          // TĘCZOWE KOLORY - różne odcienie dla różnych części ryby
+          const bodyHue = this.hueShift;
+          const finHue = (this.hueShift + 40) % 360;
+          const eyeHue = (this.hueShift + 80) % 360;
+          const spotHue = (this.hueShift + 120) % 360;
+          
+          const bodyColor = `hsl(${bodyHue}, 90%, 60%)`;
+          const finColor = `hsl(${finHue}, 90%, 50%)`;
+          const eyeColor = `hsl(${eyeHue}, 100%, 70%)`;
+          const spotColor = `hsl(${spotHue}, 100%, 65%)`;
+
+          ctx.save();
+          ctx.translate(this.x, this.y);
+          if (this.direction === -1) ctx.scale(-1, 1);
+
+          // Płetwa ogonowa
+          const tailSway = Math.sin(time * 0.003 * this.speedMod + this.phase) * 5;
+          
+          ctx.fillStyle = finColor;
+          ctx.beginPath();
+          ctx.moveTo(-this.size * 0.8, 0);
+          ctx.lineTo(-this.size * 1.4, -this.size * 0.4 + tailSway);
+          ctx.lineTo(-this.size * 1.4, this.size * 0.4 - tailSway);
+          ctx.fill();
+
+          // Ciało
+          ctx.fillStyle = bodyColor;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, this.size, this.size * 0.65, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // TĘCZOWE KROPKI na ciele
+          for (let i = 0; i < 3; i++) {
+            const spotX = -this.size * 0.3 + i * this.size * 0.4;
+            const spotY = -this.size * 0.1;
+            ctx.fillStyle = `hsl(${(spotHue + i * 30) % 360}, 100%, 70%)`;
+            ctx.beginPath();
+            ctx.arc(spotX, spotY, 2, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // Płetwa grzbietowa
+          ctx.fillStyle = finColor;
+          ctx.beginPath();
+          ctx.moveTo(-this.size * 0.3, -this.size * 0.5);
+          ctx.lineTo(0, -this.size * 0.75);
+          ctx.lineTo(this.size * 0.3, -this.size * 0.5);
+          ctx.fill();
+
+          // Odbłysk
+          ctx.fillStyle = 'rgba(255,255,255,0.2)';
+          ctx.beginPath();
+          ctx.ellipse(-this.size * 0.2, -this.size * 0.2, this.size * 0.3, this.size * 0.1, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Oko
+          ctx.fillStyle = '#fff';
+          ctx.beginPath();
+          ctx.arc(this.size * 0.5, -this.size * 0.1, 3.5, 0, Math.PI * 2);
+          ctx.fill();
+          
+          ctx.fillStyle = eyeColor;
+          ctx.beginPath();
+          ctx.arc(this.size * 0.55, -this.size * 0.1, 1.5, 0, Math.PI * 2);
+          ctx.fill();
+          
+          ctx.fillStyle = '#000';
+          ctx.beginPath();
+          ctx.arc(this.size * 0.52, -this.size * 0.15, 0.7, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.restore();
+        }
+      }
+
+      // Długie wodorosty
+      class LongPlant {
+        constructor(x) {
+          this.x = x;
+          this.height = 120 + Math.random() * 120;
+          this.segments = 8 + Math.floor(Math.random() * 6);
+          this.baseWidth = 4 + Math.random() * 3;
+          this.phase = Math.random() * Math.PI * 2;
+          this.speed = 0.001 + Math.random() * 0.0015;
+          
+          const g = 100 + Math.random() * 80;
+          this.color = `rgb(10, ${g}, 30)`;
+          this.lightColor = `rgb(20, ${g + 30}, 40)`;
+          this.darkColor = `rgb(5, ${g - 20}, 20)`;
+        }
+
+        draw(ctx, time) {
+          const sway = Math.sin(time * this.speed + this.phase) * 4;
+          
+          ctx.save();
+          ctx.translate(this.x, 380);
+          
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          
+          for (let i = 1; i <= this.segments; i++) {
+            const t = i / this.segments;
+            const y = -this.height * t;
+            const x = sway * Math.sin(t * Math.PI * 1.5);
+            
+            if (i % 3 === 0) {
+              const prevT = (i - 1) / this.segments;
+              const prevY = -this.height * prevT;
+              const prevX = sway * Math.sin(prevT * Math.PI * 1.5);
+              
+              ctx.quadraticCurveTo(
+                prevX * 1.5, prevY - this.height * 0.1,
+                x, y
+              );
+            } else {
+              ctx.lineTo(x, y);
+            }
+          }
+          
+          ctx.strokeStyle = this.color;
+          ctx.lineWidth = this.baseWidth;
+          ctx.stroke();
+          
+          // Liście
+          for (let i = 1; i < this.segments; i += 2) {
+            const t = i / this.segments;
+            const y = -this.height * t;
+            const x = sway * Math.sin(t * Math.PI * 1.5);
+            
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(Math.sin(time * 0.0005 + i) * 0.1);
+            
+            ctx.fillStyle = this.lightColor;
+            ctx.fillRect(-4, -2, 15, 4);
+            
+            ctx.fillStyle = this.darkColor;
+            ctx.fillRect(-11, -1, 15, 3);
+            
+            ctx.restore();
+          }
+          
+          ctx.restore();
+        }
+      }
+
+      // Kamienie geometryczne
+      class GeometricStone {
+        constructor(x) {
+          this.x = x;
+          this.y = 385;
+          this.size = 15 + Math.random() * 25;
+          this.vertices = 5 + Math.floor(Math.random() * 4);
+          this.rotation = Math.random() * Math.PI;
+          
+          const gray = 70 + Math.random() * 50;
+          this.color = `rgb(${gray}, ${gray-10}, ${gray-20})`;
+          this.accentColor = `rgb(${gray+30}, ${gray+20}, ${gray})`;
+        }
+
+        draw(ctx) {
+          ctx.save();
+          ctx.translate(this.x, this.y);
+          ctx.rotate(this.rotation);
+          
+          // Cień
+          ctx.fillStyle = 'rgba(0,0,0,0.3)';
+          ctx.beginPath();
+          ctx.ellipse(3, 3, this.size * 0.7, this.size * 0.3, 0, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Kamień
+          ctx.fillStyle = this.color;
+          ctx.strokeStyle = this.accentColor;
+          ctx.lineWidth = 2;
+          
+          ctx.beginPath();
+          for (let i = 0; i < this.vertices; i++) {
+            const angle = (i / this.vertices) * Math.PI * 2;
+            const radius = this.size * (0.8 + 0.2 * Math.sin(angle * 3));
+            const x = Math.cos(angle) * radius * 0.6;
+            const y = Math.sin(angle) * radius * 0.4;
+            
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          
+          // Akcent
+          ctx.fillStyle = 'rgba(255,255,255,0.1)';
+          ctx.beginPath();
+          ctx.arc(-3, -3, this.size * 0.2, 0, Math.PI * 2);
+          ctx.fill();
+          
+          ctx.restore();
+        }
+      }
+
+      // DUŻE, PRZEZROCZYSTE WIAZKI ŚWIATŁA
+      class LightBeam {
+        constructor() {
+          this.x = Math.random() * W;
+          this.y = -100; // Zaczynają wyżej
+          this.width = 100 + Math.random() * 150; // DUŻO WIĘKSZE (było 30-100)
+          this.speed = 0.1 + Math.random() * 0.3; // WOLNIEJ (było 0.3-0.8)
+          this.hue = Math.random() * 360;
+          this.alpha = 0.1 + Math.random() * 0.15; // BARDZIEJ PRZEZROCZYSTE (było 0.2-0.3)
+          this.life = 1.0;
+          this.length = 150 + Math.random() * 150; // Dłuższe smugi
+        }
+
+        update() {
+          this.y += this.speed;
+          this.life -= 0.001; // Wolniej zanikają
+          this.x += Math.sin(this.y * 0.01) * 0.1; // Delikatniejsze kołysanie
+        }
+
+        draw(ctx) {
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          
+          // Gradient z większym zasięgiem
+          const gradient = ctx.createLinearGradient(0, this.y, 0, this.y + this.length);
+          gradient.addColorStop(0, `hsla(${this.hue}, 100%, 80%, 0)`);
+          gradient.addColorStop(0.2, `hsla(${this.hue}, 100%, 70%, ${this.alpha * this.life})`);
+          gradient.addColorStop(0.5, `hsla(${this.hue}, 100%, 70%, ${this.alpha * this.life * 0.8})`);
+          gradient.addColorStop(0.8, `hsla(${this.hue}, 100%, 70%, ${this.alpha * this.life * 0.5})`);
+          gradient.addColorStop(1, `hsla(${this.hue}, 100%, 80%, 0)`);
+          
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.moveTo(this.x - this.width/2, this.y);
+          ctx.lineTo(this.x + this.width/2, this.y);
+          ctx.lineTo(this.x + this.width, this.y + this.length);
+          ctx.lineTo(this.x - this.width, this.y + this.length);
+          ctx.closePath();
+          ctx.fill();
+          
+          ctx.restore();
+        }
+      }
+
+      // Bąbelki
+      class Bubble {
+        constructor() {
+          this.x = Math.random() * W;
+          this.y = 380;
+          this.r = 2 + Math.random() * 4;
+          this.speed = 0.2 + Math.random() * 0.4;
+          this.phase = Math.random() * Math.PI * 2;
+        }
+
+        update() {
+          this.y -= this.speed;
+          this.x += Math.sin(this.y * 0.02 + this.phase) * 0.1;
+        }
+
+        draw(ctx) {
+          ctx.strokeStyle = 'rgba(220, 240, 255, 0.3)';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+
+      // Inicjalizacja
+      let fishes = [];
+      let plants = [];
+      let stones = [];
+      let bubbles = [];
+      let lightBeams = [];
+
+      // Ryby
+      for (let i = 0; i < 8; i++) {
+        fishes.push(new Fish());
+      }
+
+      // Rośliny
+      for (let i = 0; i < 14; i++) {
+        plants.push(new LongPlant(20 + Math.random() * 560));
+      }
+
+      // Kamienie
+      for (let i = 0; i < 10; i++) {
+        stones.push(new GeometricStone(30 + Math.random() * 540));
+      }
+      stones.sort((a, b) => a.size - b.size);
+
+      // GŁÓWNA PĘTLA ANIMACJI
+      function draw() {
+        // Wyczyść canvas
+        ctx.clearRect(0, 0, W, H);
+
+        // Tło - gradient
+        const gradient = ctx.createLinearGradient(0, 0, 0, H);
+        gradient.addColorStop(0, '#021525');
+        gradient.addColorStop(0.3, '#0a1a2a');
+        gradient.addColorStop(0.7, '#1a2a3a');
+        gradient.addColorStop(1, '#1a3a4a');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, W, H);
+
+        // Szum
+        for (let i = 0; i < 50; i++) {
+          ctx.fillStyle = `rgba(100, 200, 255, ${Math.random() * 0.03})`;
+          ctx.fillRect(Math.random() * W, Math.random() * H, 2, 2);
+        }
+
+        // DUŻE, PRZEZROCZYSTE WIAZKI ŚWIATŁA
+        if (Math.random() < 0.008) { // Nieco częściej
+          lightBeams.push(new LightBeam());
+        }
+        lightBeams = lightBeams.filter(beam => {
+          beam.update();
+          beam.draw(ctx);
+          return beam.life > 0 && beam.y < H + 200;
+        });
+
+        // Piasek
+        ctx.fillStyle = '#8b7d5e';
+        ctx.fillRect(0, 370, W, 30);
+        for (let i = 0; i < 100; i++) {
+          ctx.fillStyle = `rgba(0,0,0,0.03)`;
+          ctx.fillRect(Math.random()*W, 370 + Math.random()*30, 3, 1);
+        }
+
+        // Rośliny (ZA kamieniami)
+        const time = Date.now();
+        plants.forEach(p => p.draw(ctx, time));
+
+        // Kamienie (NA roślinach)
+        stones.forEach(s => s.draw(ctx));
+
+        // Bąbelki
+        if (Math.random() < 0.015) {
+          bubbles.push(new Bubble());
+        }
+        bubbles = bubbles.filter(b => {
+          b.update();
+          b.draw(ctx);
+          return b.y > -20;
+        });
+
+        // Ryby (NA wszystkim) - TĘCZOWE
+        fishes.forEach(fish => {
+          fish.update();
+          fish.draw(ctx, time);
+        });
+
+        // Kontynuuj animację
+        requestAnimationFrame(draw);
+      }
+
+      // START ANIMACJI
+      draw();
+    })(); // IIFE - natychmiastowe wywołanie
+  </script>
+
+  <footer>
+    <p>© 2026 BiccCorp</p>
+  </footer>
+</body>
+</html>

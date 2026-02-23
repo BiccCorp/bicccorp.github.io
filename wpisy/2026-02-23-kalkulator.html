@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kalkulator płacy - BiccCorp Blog</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script src="../fade.js"></script>
+
+  <script>
+    function obliczWynagrodzenie() {
+      const godziny = parseFloat(document.getElementById("godziny").value);
+      const stawkaBrutto = parseFloat(document.getElementById("stawka").value);
+      const dniRobocze = parseFloat(document.getElementById("dni").value);
+
+      if (
+        isNaN(godziny) || godziny <= 0 ||
+        isNaN(stawkaBrutto) || stawkaBrutto <= 0 ||
+        isNaN(dniRobocze) || dniRobocze <= 0
+      ) {
+        document.getElementById("wynik").innerText = "Wprowadź poprawne wartości.";
+        return;
+      }
+
+      // Brutto miesięczne
+      const bruttoMiesiac = godziny * stawkaBrutto * dniRobocze;
+
+      // Szacunkowe netto (~75% brutto)
+      const nettoMiesiac = bruttoMiesiac * 0.75;
+
+      // Netto godzinowe
+      const nettoGodzina = stawkaBrutto * 0.75;
+
+      document.getElementById("wynik").innerHTML = `
+        <strong>Wynagrodzenie miesięczne:</strong><br><br>
+
+        💰 <strong>Brutto:</strong> ${bruttoMiesiac.toFixed(2)} zł<br>
+        <small>Kwota przed potrąceniem podatków i składek.</small><br><br>
+
+        🏦 <strong>Netto (szacunkowo):</strong> ${nettoMiesiac.toFixed(2)} zł<br>
+        <small>Kwota „na rękę”, po potrąceniach.</small><br><br>
+
+        ⏱️ <strong>Netto za godzinę (szacunkowo):</strong> ${nettoGodzina.toFixed(2)} zł
+      `;
+    }
+  </script>
+</head>
+
+<body class="dark">
+  <header>
+    <h1>Kalkulator płac</h1>
+    <nav>
+      <a href="../index.html">Strona główna</a>
+      <a href="../o-mnie.html">O mnie</a>
+      <a href="../galeria.html">Galeria</a>
+      <a href="../wpisy.html">Wpisy</a>
+    </nav>
+  </header>
+
+  <main style="max-width: 700px; padding: 1rem;">
+    <article>
+      <p><em>Data publikacji: 2026-02-23</em></p>
+
+      <h2>Kalkulator wynagrodzenia</h2>
+      <p>Podaj liczbę godzin pracy dziennie, stawkę <strong>brutto</strong> za godzinę oraz liczbę dni roboczych.</p>
+
+      <div class="kalkulator">
+        <label>
+          Godziny pracy na dzień:
+          <input type="number" id="godziny" step="0.5" min="0" />
+        </label>
+        <br /><br />
+
+        <label>
+          Stawka brutto za godzinę (zł):
+          <input type="number" id="stawka" step="0.01" min="0" />
+        </label>
+        <br /><br />
+
+        <label>
+          Dni robocze w miesiącu:
+          <input type="number" id="dni" step="1" min="1" value="20" />
+        </label>
+        <br /><br />
+
+        <button onclick="obliczWynagrodzenie()">Oblicz</button>
+
+        <p id="wynik" style="margin-top: 1rem;"></p>
+      </div>
+    </article>
+  </main>
+
+  <footer>
+    <p>© 2025 BiccCorp</p>
+  </footer>
+</body>
+</html>
