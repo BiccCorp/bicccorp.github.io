@@ -73,6 +73,12 @@
     .start-btn:hover { opacity: 0.6; }
     .start-btn:disabled { opacity: 0.2; cursor: not-allowed; }
 
+    .info-note {
+      font-size: 0.72rem; opacity: 0.35;
+      text-align: center; margin-top: 1rem;
+      letter-spacing: 0.05em; line-height: 1.8;
+    }
+
     #quiz-screen { display: none; }
 
     .quiz-meta {
@@ -188,12 +194,6 @@
       display: none; line-height: 1.7;
     }
     .err-box.show { display: block; }
-
-    .info-note {
-      font-size: 0.72rem; opacity: 0.4;
-      text-align: center; margin-top: 1rem;
-      letter-spacing: 0.05em; line-height: 1.7;
-    }
   </style>
 </head>
 <body class="dark">
@@ -210,7 +210,7 @@
   <main style="max-width: 700px; padding: 1rem;">
     <article>
       <p><em>Data publikacji: 2025-06-07</em></p>
-      <p>Wybierz język i tłumacz słowa na polski. Quiz korzysta z darmowego API tłumaczeń — bez rejestracji, bez klucza.</p>
+      <p>Wybierz język i tłumacz słowa na polski. Słowa pobierane są z Wikisłownika, tłumaczenia z MyMemory — bez rejestracji, bez klucza.</p>
 
       <div id="quiz-root">
 
@@ -224,7 +224,10 @@
             <button class="diff-btn"        data-diff="hard"   onclick="setDiff(this)">Trudny</button>
           </div>
           <button class="start-btn" id="start-btn" onclick="startQuiz()" disabled>Rozpocznij →</button>
-          <div class="info-note">Tłumaczenia: MyMemory API (darmowy, bez klucza)</div>
+          <div class="info-note">
+            Słowa: Wiktionary API · Tłumaczenia: MyMemory API<br>
+            Darmowe, bez klucza, bez rejestracji
+          </div>
         </div>
 
         <div id="quiz-screen">
@@ -254,234 +257,133 @@
 
 <script>
 // ══════════════════════════════════════════
-//  WORD DATABASE
-//  Organized by language → difficulty → category → words
+//  LANGUAGES & WIKTIONARY CATEGORIES
 // ══════════════════════════════════════════
-const WORD_DB = {
+// Wiktionary category format: en.wiktionary.org/w/api.php
+// Categories like "de:Food and drink", "fr:Basic words" etc.
+// We use English Wiktionary (en.wiktionary.org) which has entries
+// for all languages tagged with their language categories.
+
+const LANGUAGES = [
+  { code:'en', name:'Angielski',  flag:'🇬🇧', mmCode:'en-GB' },
+  { code:'de', name:'Niemiecki',  flag:'🇩🇪', mmCode:'de-DE' },
+  { code:'es', name:'Hiszpański', flag:'🇪🇸', mmCode:'es-ES' },
+  { code:'fr', name:'Francuski',  flag:'🇫🇷', mmCode:'fr-FR' },
+  { code:'it', name:'Włoski',     flag:'🇮🇹', mmCode:'it-IT' },
+  { code:'ru', name:'Rosyjski',   flag:'🇷🇺', mmCode:'ru-RU' },
+  { code:'pt', name:'Portugalski',flag:'🇵🇹', mmCode:'pt-PT' },
+];
+
+// Wiktionary categories per language per difficulty
+// Format: Category name on en.wiktionary.org (without "Category:" prefix)
+const WIKT_CATS = {
   en: {
-    easy: [
-      { cat:'jedzenie',   words:['apple','bread','milk','egg','rice','soup','cake','fish','meat','water','juice','tea','coffee','cheese','butter'] },
-      { cat:'kolory',     words:['red','blue','green','yellow','black','white','pink','orange','purple','brown','gray','gold'] },
-      { cat:'liczby',     words:['one','two','three','four','five','six','seven','eight','nine','ten','hundred','thousand'] },
-      { cat:'rodzina',    words:['mother','father','sister','brother','grandmother','grandfather','son','daughter','wife','husband','baby','child'] },
-      { cat:'ciało',      words:['hand','eye','nose','mouth','ear','head','foot','arm','leg','hair','heart','tooth'] },
-      { cat:'dom',        words:['door','window','table','chair','bed','kitchen','bathroom','garden','wall','floor','roof','lamp'] },
-    ],
-    medium: [
-      { cat:'czasowniki', words:['run','jump','sleep','eat','drink','write','read','speak','listen','work','travel','learn','forget','remember','laugh'] },
-      { cat:'przymiotniki',words:['happy','sad','angry','tired','hungry','strong','weak','fast','slow','big','small','young','old','beautiful','ugly'] },
-      { cat:'pogoda',     words:['rain','snow','wind','cloud','storm','fog','thunder','sunshine','frost','flood','drought','rainbow'] },
-      { cat:'miasto',     words:['street','bridge','hospital','school','market','library','station','airport','museum','hotel','park','church'] },
-      { cat:'czas',       words:['morning','evening','midnight','yesterday','tomorrow','weekend','century','moment','decade','season','holiday','birthday'] },
-    ],
-    hard: [
-      { cat:'idiomy',     words:['nevertheless','furthermore','consequently','approximately','throughout','circumstance','acknowledge','perspective','phenomenon','consciousness'] },
-      { cat:'abstrakcja', words:['freedom','justice','equality','democracy','philosophy','ambition','integrity','resilience','empathy','nostalgia','melancholy','euphoria'] },
-      { cat:'nauka',      words:['hypothesis','molecule','chromosome','algorithm','photosynthesis','thermodynamics','electromagnetic','metabolism','ecosystem','relativity'] },
-    ],
+    easy:   ['en:Food and drink','en:Colors','en:Family','en:Animals','en:Body','en:Clothing'],
+    medium: ['en:Emotions','en:Weather','en:Travel','en:Sports','en:Education','en:Work'],
+    hard:   ['en:Philosophy','en:Politics','en:Economics','en:Science','en:Law','en:Medicine'],
   },
   de: {
-    easy: [
-      { cat:'jedzenie',   words:['Brot','Milch','Käse','Apfel','Wasser','Kaffee','Kuchen','Fisch','Ei','Suppe','Butter','Salz'] },
-      { cat:'kolory',     words:['rot','blau','grün','gelb','schwarz','weiß','rosa','lila','orange','braun','grau','gold'] },
-      { cat:'rodzina',    words:['Mutter','Vater','Bruder','Schwester','Oma','Opa','Sohn','Tochter','Baby','Kind','Mann','Frau'] },
-      { cat:'dom',        words:['Tür','Fenster','Tisch','Stuhl','Bett','Küche','Garten','Wand','Boden','Dach','Lampe','Treppe'] },
-    ],
-    medium: [
-      { cat:'czasowniki', words:['laufen','schlafen','essen','trinken','schreiben','lesen','sprechen','arbeiten','lernen','reisen','lachen','vergessen'] },
-      { cat:'przymiotniki',words:['glücklich','traurig','müde','hungrig','stark','schnell','langsam','jung','alt','schön','klein','groß'] },
-      { cat:'miasto',     words:['Straße','Brücke','Schule','Markt','Bahnhof','Flughafen','Museum','Hotel','Park','Kirche','Krankenhaus','Bibliothek'] },
-    ],
-    hard: [
-      { cat:'abstrakcja', words:['Freiheit','Gerechtigkeit','Gleichheit','Sehnsucht','Weltanschauung','Schadenfreude','Fernweh','Verschlimmbessern','Torschlusspanik','Drachenfutter'] },
-      { cat:'nauka',      words:['Molekül','Chromosom','Algorithmus','Photosynthese','Thermodynamik','Metabolismus','Ökosystem','Relativität','Hypothese','Elektromagnetismus'] },
-    ],
+    easy:   ['de:Food and drink','de:Colors','de:Family','de:Animals','de:Body','de:Clothing'],
+    medium: ['de:Emotions','de:Weather','de:Travel','de:Sports','de:Education','de:Work'],
+    hard:   ['de:Philosophy','de:Politics','de:Economics','de:Science','de:Law','de:Medicine'],
   },
   es: {
-    easy: [
-      { cat:'jedzenie',   words:['pan','leche','queso','manzana','agua','café','pastel','pescado','huevo','sopa','mantequilla','sal'] },
-      { cat:'kolory',     words:['rojo','azul','verde','amarillo','negro','blanco','rosa','naranja','morado','marrón','gris','dorado'] },
-      { cat:'rodzina',    words:['madre','padre','hermano','hermana','abuela','abuelo','hijo','hija','bebé','niño','esposo','esposa'] },
-      { cat:'dom',        words:['puerta','ventana','mesa','silla','cama','cocina','jardín','pared','suelo','techo','lámpara','escalera'] },
-    ],
-    medium: [
-      { cat:'czasowniki', words:['correr','dormir','comer','beber','escribir','leer','hablar','trabajar','aprender','viajar','reír','olvidar'] },
-      { cat:'przymiotniki',words:['feliz','triste','cansado','hambriento','fuerte','rápido','lento','joven','viejo','hermoso','pequeño','grande'] },
-      { cat:'miasto',     words:['calle','puente','escuela','mercado','estación','aeropuerto','museo','hotel','parque','iglesia','hospital','biblioteca'] },
-    ],
-    hard: [
-      { cat:'abstrakcja', words:['libertad','justicia','igualdad','democracia','filosofía','ambición','integridad','resiliencia','empatía','nostalgia','melancolía','euforia'] },
-      { cat:'idiomy',     words:['madrugada','añoranza','sobremesa','mariposa','desvelado','trasnochar','madrugar','tutear','pordiosear','menospreciar'] },
-    ],
+    easy:   ['es:Food and drink','es:Colors','es:Family','es:Animals','es:Body','es:Clothing'],
+    medium: ['es:Emotions','es:Weather','es:Travel','es:Sports','es:Education','es:Work'],
+    hard:   ['es:Philosophy','es:Politics','es:Economics','es:Science','es:Law','es:Medicine'],
   },
   fr: {
-    easy: [
-      { cat:'jedzenie',   words:['pain','lait','fromage','pomme','eau','café','gâteau','poisson','oeuf','soupe','beurre','sel'] },
-      { cat:'kolory',     words:['rouge','bleu','vert','jaune','noir','blanc','rose','orange','violet','marron','gris','doré'] },
-      { cat:'rodzina',    words:['mère','père','frère','soeur','grand-mère','grand-père','fils','fille','bébé','enfant','mari','femme'] },
-      { cat:'dom',        words:['porte','fenêtre','table','chaise','lit','cuisine','jardin','mur','sol','toit','lampe','escalier'] },
-    ],
-    medium: [
-      { cat:'czasowniki', words:['courir','dormir','manger','boire','écrire','lire','parler','travailler','apprendre','voyager','rire','oublier'] },
-      { cat:'przymiotniki',words:['heureux','triste','fatigué','affamé','fort','rapide','lent','jeune','vieux','beau','petit','grand'] },
-      { cat:'miasto',     words:['rue','pont','école','marché','gare','aéroport','musée','hôtel','parc','église','hôpital','bibliothèque'] },
-    ],
-    hard: [
-      { cat:'abstrakcja', words:['liberté','justice','égalité','démocratie','philosophie','ambition','intégrité','résilience','empathie','nostalgie','mélancolie','euphorie'] },
-      { cat:'idiomy',     words:['dépaysement','flâner','soulager','se souvenir','épanouissement','bouleversement','débrouillard','insouciance','nonchalance','bienveillance'] },
-    ],
+    easy:   ['fr:Food and drink','fr:Colors','fr:Family','fr:Animals','fr:Body','fr:Clothing'],
+    medium: ['fr:Emotions','fr:Weather','fr:Travel','fr:Sports','fr:Education','fr:Work'],
+    hard:   ['fr:Philosophy','fr:Politics','fr:Economics','fr:Science','fr:Law','fr:Medicine'],
   },
   it: {
-    easy: [
-      { cat:'jedzenie',   words:['pane','latte','formaggio','mela','acqua','caffè','torta','pesce','uovo','zuppa','burro','sale'] },
-      { cat:'kolory',     words:['rosso','blu','verde','giallo','nero','bianco','rosa','arancione','viola','marrone','grigio','dorato'] },
-      { cat:'rodzina',    words:['madre','padre','fratello','sorella','nonna','nonno','figlio','figlia','bambino','marito','moglie','bebè'] },
-    ],
-    medium: [
-      { cat:'czasowniki', words:['correre','dormire','mangiare','bere','scrivere','leggere','parlare','lavorare','imparare','viaggiare','ridere','dimenticare'] },
-      { cat:'przymiotniki',words:['felice','triste','stanco','affamato','forte','veloce','lento','giovane','vecchio','bello','piccolo','grande'] },
-    ],
-    hard: [
-      { cat:'abstrakcja', words:['libertà','giustizia','uguaglianza','democrazia','filosofia','ambizione','integrità','resilienza','empatia','nostalgia','malinconia','euforia'] },
-    ],
-  },
-  pt: {
-    easy: [
-      { cat:'jedzenie',   words:['pão','leite','queijo','maçã','água','café','bolo','peixe','ovo','sopa','manteiga','sal'] },
-      { cat:'kolory',     words:['vermelho','azul','verde','amarelo','preto','branco','rosa','laranja','roxo','marrom','cinza','dourado'] },
-      { cat:'rodzina',    words:['mãe','pai','irmão','irmã','avó','avô','filho','filha','bebê','criança','marido','esposa'] },
-    ],
-    medium: [
-      { cat:'czasowniki', words:['correr','dormir','comer','beber','escrever','ler','falar','trabalhar','aprender','viajar','rir','esquecer'] },
-      { cat:'przymiotniki',words:['feliz','triste','cansado','faminto','forte','rápido','lento','jovem','velho','bonito','pequeno','grande'] },
-    ],
-    hard: [
-      { cat:'abstrakcja', words:['liberdade','justiça','igualdade','democracia','filosofia','ambição','integridade','resiliência','empatia','saudade','melancolia','euforia'] },
-    ],
+    easy:   ['it:Food and drink','it:Colors','it:Family','it:Animals','it:Body','it:Clothing'],
+    medium: ['it:Emotions','it:Weather','it:Travel','it:Sports','it:Education','it:Work'],
+    hard:   ['it:Philosophy','it:Politics','it:Economics','it:Science','it:Law','it:Medicine'],
   },
   ru: {
-    easy: [
-      { cat:'jedzenie',   words:['хлеб','молоко','сыр','яблоко','вода','кофе','торт','рыба','яйцо','суп','масло','соль'] },
-      { cat:'kolory',     words:['красный','синий','зелёный','жёлтый','чёрный','белый','розовый','оранжевый','фиолетовый','коричневый','серый','золотой'] },
-      { cat:'rodzina',    words:['мать','отец','брат','сестра','бабушка','дедушка','сын','дочь','ребёнок','муж','жена','семья'] },
-    ],
-    medium: [
-      { cat:'czasowniki', words:['бежать','спать','есть','пить','писать','читать','говорить','работать','учиться','путешествовать','смеяться','забывать'] },
-      { cat:'przymiotniki',words:['счастливый','грустный','усталый','голодный','сильный','быстрый','медленный','молодой','старый','красивый','маленький','большой'] },
-    ],
-    hard: [
-      { cat:'abstrakcja', words:['свобода','справедливость','равенство','демократия','философия','амбиция','честность','стойкость','сочувствие','ностальгия','меланхолия','эйфория'] },
-    ],
+    easy:   ['ru:Food and drink','ru:Colors','ru:Family','ru:Animals','ru:Body','ru:Clothing'],
+    medium: ['ru:Emotions','ru:Weather','ru:Travel','ru:Sports','ru:Education','ru:Work'],
+    hard:   ['ru:Philosophy','ru:Politics','ru:Economics','ru:Science','ru:Law','ru:Medicine'],
   },
-  ja: {
-    easy: [
-      { cat:'jedzenie',   words:['パン','牛乳','りんご','水','コーヒー','ケーキ','魚','卵','スープ','バター','塩','お茶'] },
-      { cat:'kolory',     words:['赤','青','緑','黄色','黒','白','ピンク','オレンジ','紫','茶色','灰色','金色'] },
-      { cat:'liczby',     words:['一','二','三','四','五','六','七','八','九','十','百','千'] },
-      { cat:'rodzina',    words:['母','父','兄','姉','弟','妹','祖母','祖父','息子','娘','赤ちゃん','子供'] },
-    ],
-    medium: [
-      { cat:'czasowniki', words:['走る','寝る','食べる','飲む','書く','読む','話す','働く','学ぶ','旅行する','笑う','忘れる'] },
-      { cat:'przymiotniki',words:['嬉しい','悲しい','疲れた','空腹','強い','速い','遅い','若い','古い','美しい','小さい','大きい'] },
-    ],
-    hard: [
-      { cat:'abstrakcja', words:['自由','正義','平等','民主主義','哲学','野心','誠実','回復力','共感','郷愁','憂鬱','幸福感'] },
-      { cat:'kultura',    words:['侘び寂び','木漏れ日','木漏れ日','物の哀れ','間','空気','縁','義理','恥','誇り'] },
-    ],
-  },
-  zh: {
-    easy: [
-      { cat:'jedzenie',   words:['面包','牛奶','苹果','水','咖啡','蛋糕','鱼','鸡蛋','汤','黄油','盐','茶'] },
-      { cat:'kolory',     words:['红色','蓝色','绿色','黄色','黑色','白色','粉色','橙色','紫色','棕色','灰色','金色'] },
-      { cat:'liczby',     words:['一','二','三','四','五','六','七','八','九','十','百','千'] },
-      { cat:'rodzina',    words:['妈妈','爸爸','哥哥','姐姐','弟弟','妹妹','奶奶','爷爷','儿子','女儿','婴儿','孩子'] },
-    ],
-    medium: [
-      { cat:'czasowniki', words:['跑步','睡觉','吃饭','喝水','写字','读书','说话','工作','学习','旅行','笑','忘记'] },
-      { cat:'przymiotniki',words:['快乐','悲伤','疲惫','饥饿','强壮','快速','缓慢','年轻','年老','美丽','小','大'] },
-    ],
-    hard: [
-      { cat:'abstrakcja', words:['自由','正义','平等','民主','哲学','野心','诚实','韧性','同理心','乡愁','忧郁','幸福'] },
-    ],
-  },
-  ko: {
-    easy: [
-      { cat:'jedzenie',   words:['빵','우유','사과','물','커피','케이크','생선','달걀','수프','버터','소금','차'] },
-      { cat:'kolory',     words:['빨간','파란','초록','노란','검은','하얀','분홍','주황','보라','갈색','회색','금색'] },
-      { cat:'rodzina',    words:['어머니','아버지','형','오빠','언니','누나','남동생','여동생','할머니','할아버지','아들','딸'] },
-    ],
-    medium: [
-      { cat:'czasowniki', words:['달리다','자다','먹다','마시다','쓰다','읽다','말하다','일하다','배우다','여행하다','웃다','잊다'] },
-      { cat:'przymiotniki',words:['행복한','슬픈','피곤한','배고픈','강한','빠른','느린','젊은','늙은','아름다운','작은','큰'] },
-    ],
-    hard: [
-      { cat:'abstrakcja', words:['자유','정의','평등','민주주의','철학','야망','성실','회복력','공감','향수','우울','행복감'] },
-    ],
-  },
-  uk: {
-    easy: [
-      { cat:'jedzenie',   words:['хліб','молоко','сир','яблуко','вода','кава','торт','риба','яйце','суп','масло','сіль'] },
-      { cat:'kolory',     words:['червоний','синій','зелений','жовтий','чорний','білий','рожевий','помаранчевий','фіолетовий','коричневий','сірий','золотий'] },
-      { cat:'rodzina',    words:['мати','батько','брат','сестра','бабуся','дідусь','син','дочка','дитина','чоловік','дружина','родина'] },
-    ],
-    medium: [
-      { cat:'czasowniki', words:['бігти','спати','їсти','пити','писати','читати','говорити','працювати','вчитися','подорожувати','сміятися','забувати'] },
-      { cat:'przymiotniki',words:['щасливий','сумний','втомлений','голодний','сильний','швидкий','повільний','молодий','старий','красивий','малий','великий'] },
-    ],
-    hard: [
-      { cat:'abstrakcja', words:['свобода','справедливість','рівність','демократія','філософія','амбіція','чесність','стійкість','співчуття','ностальгія','меланхолія','ейфорія'] },
-    ],
-  },
-  cs: {
-    easy: [
-      { cat:'jedzenie',   words:['chléb','mléko','sýr','jablko','voda','káva','dort','ryba','vejce','polévka','máslo','sůl'] },
-      { cat:'kolory',     words:['červený','modrý','zelený','žlutý','černý','bílý','růžový','oranžový','fialový','hnědý','šedý','zlatý'] },
-      { cat:'rodzina',    words:['matka','otec','bratr','sestra','babička','dědeček','syn','dcera','dítě','manžel','manželka','rodina'] },
-    ],
-    medium: [
-      { cat:'czasowniki', words:['běžet','spát','jíst','pít','psát','číst','mluvit','pracovat','učit se','cestovat','smát se','zapomenout'] },
-      { cat:'przymiotniki',words:['šťastný','smutný','unavený','hladový','silný','rychlý','pomalý','mladý','starý','krásný','malý','velký'] },
-    ],
-    hard: [
-      { cat:'abstrakcja', words:['svoboda','spravedlnost','rovnost','demokracie','filozofie','ambice','integrita','odolnost','empatie','nostalgie','melancholie','euforie'] },
-    ],
+  pt: {
+    easy:   ['pt:Food and drink','pt:Colors','pt:Family','pt:Animals','pt:Body','pt:Clothing'],
+    medium: ['pt:Emotions','pt:Weather','pt:Travel','pt:Sports','pt:Education','pt:Work'],
+    hard:   ['pt:Philosophy','pt:Politics','pt:Economics','pt:Science','pt:Law','pt:Medicine'],
   },
 };
 
-const LANGUAGES = [
-  { code:'en', name:'Angielski',   flag:'🇬🇧' },
-  { code:'de', name:'Niemiecki',   flag:'🇩🇪' },
-  { code:'es', name:'Hiszpański',  flag:'🇪🇸' },
-  { code:'fr', name:'Francuski',   flag:'🇫🇷' },
-  { code:'it', name:'Włoski',      flag:'🇮🇹' },
-  { code:'pt', name:'Portugalski', flag:'🇵🇹' },
-  { code:'ru', name:'Rosyjski',    flag:'🇷🇺' },
-  { code:'ja', name:'Japoński',    flag:'🇯🇵' },
-  { code:'zh', name:'Chiński',     flag:'🇨🇳' },
-  { code:'ko', name:'Koreański',   flag:'🇰🇷' },
-  { code:'uk', name:'Ukraiński',   flag:'🇺🇦' },
-  { code:'cs', name:'Czeski',      flag:'🇨🇿' },
-];
+// Human-readable category names (for display)
+const CAT_LABELS = {
+  'Food and drink':'jedzenie','Colors':'kolory','Family':'rodzina',
+  'Animals':'zwierzęta','Body':'ciało','Clothing':'ubrania',
+  'Emotions':'emocje','Weather':'pogoda','Travel':'podróże',
+  'Sports':'sport','Education':'edukacja','Work':'praca',
+  'Philosophy':'filozofia','Politics':'polityka','Economics':'ekonomia',
+  'Science':'nauka','Law':'prawo','Medicine':'medycyna',
+};
 
-// MyMemory language codes
-const MM_CODES = { en:'en-GB', de:'de-DE', es:'es-ES', fr:'fr-FR', it:'it-IT',
-                   pt:'pt-PT', ru:'ru-RU', ja:'ja-JP', zh:'zh-CN', ko:'ko-KR',
-                   uk:'uk-UA', cs:'cs-CZ' };
+// ══════════════════════════════════════════
+//  WIKTIONARY WORD CACHE
+//  We fetch 50 words per category and cache them
+// ══════════════════════════════════════════
+const wiktCache = {}; // key: "lang:cat" → [words...]
+const WIKT_API  = 'https://en.wiktionary.org/w/api.php';
+
+async function fetchCategoryWords(category, langCode) {
+  const key = langCode + ':' + category;
+  if (wiktCache[key] && wiktCache[key].length > 0) return wiktCache[key];
+
+  // Fetch up to 500 members, pick random offset
+  const params = new URLSearchParams({
+    action:    'query',
+    list:      'categorymembers',
+    cmtitle:   'Category:' + category,
+    cmlimit:   '500',
+    cmnamespace:'0',
+    format:    'json',
+    origin:    '*',   // required for CORS
+  });
+
+  const res  = await fetch(WIKT_API + '?' + params);
+  const data = await res.json();
+  const members = data?.query?.categorymembers || [];
+
+  // Filter: only single words (no spaces, no special chars), not too short/long
+  const words = members
+    .map(m => m.title)
+    .filter(w =>
+      !w.includes(' ') &&
+      !w.includes('-') &&
+      !w.includes('/') &&
+      w.length >= 3 &&
+      w.length <= 18 &&
+      // exclude proper nouns (starts with uppercase) for non-Russian
+      (langCode === 'ru' || w[0] === w[0].toLowerCase())
+    );
+
+  if (words.length === 0) throw new Error('Brak słów w kategorii: ' + category);
+
+  wiktCache[key] = shuffle([...words]);
+  return wiktCache[key];
+}
 
 // ══════════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════════
-let selectedLang = null;
-let difficulty   = 'easy';
-let score        = { correct:0, total:0 };
-let streak       = 0;
-let answered     = false;
-let usedWords    = [];
-let scoreHistory = [];
-let dotTimer     = null;
+let selectedLang  = null;
+let difficulty    = 'easy';
+let score         = { correct:0, total:0 };
+let streak        = 0;
+let answered      = false;
+let usedWords     = new Set();
+let scoreHistory  = [];
+let dotTimer      = null;
+let currentPool   = []; // words fetched for this session
 
 // ══════════════════════════════════════════
-//  BUILD UI
+//  BUILD LANG GRID
 // ══════════════════════════════════════════
 function buildLangGrid() {
   const grid = document.getElementById('lang-grid');
@@ -512,11 +414,15 @@ function setDiff(btn) {
 function startQuiz() {
   if (!selectedLang) return;
   score = { correct:0, total:0 };
-  streak = 0; usedWords = []; scoreHistory = [];
-  document.getElementById('lang-screen').style.display  = 'none';
-  document.getElementById('quiz-screen').style.display  = 'block';
+  streak = 0; usedWords = new Set(); scoreHistory = []; currentPool = [];
+  wiktCache; // keep cache between sessions
+
+  document.getElementById('lang-screen').style.display = 'none';
+  document.getElementById('quiz-screen').style.display = 'block';
   document.getElementById('quiz-lang-label').textContent = selectedLang.flag + ' ' + selectedLang.name;
-  document.getElementById('quiz-diff-label').textContent = {easy:'ŁATWY',medium:'ŚREDNI',hard:'TRUDNY'}[difficulty];
+  document.getElementById('quiz-diff-label').textContent =
+    { easy:'ŁATWY', medium:'ŚREDNI', hard:'TRUDNY' }[difficulty];
+
   buildScoreBar();
   loadQuestion();
 }
@@ -553,7 +459,7 @@ function refreshScoreBar() {
 }
 
 // ══════════════════════════════════════════
-//  DOTS ANIMATION
+//  DOTS
 // ══════════════════════════════════════════
 function startDots() {
   let n = 0;
@@ -566,80 +472,60 @@ function startDots() {
 function stopDots() { clearInterval(dotTimer); }
 
 // ══════════════════════════════════════════
-//  PICK WORD FROM DB
-// ══════════════════════════════════════════
-function pickWord() {
-  const db = WORD_DB[selectedLang.code];
-  // fallback to easy if no pool for this difficulty
-  const pool = db[difficulty] || db['easy'];
-
-  // pick a random category, then a random word not recently used
-  let attempts = 0;
-  while (attempts++ < 50) {
-    const cat = pool[Math.floor(Math.random() * pool.length)];
-    const word = cat.words[Math.floor(Math.random() * cat.words.length)];
-    if (!usedWords.includes(word)) {
-      return { word, cat: cat.cat, pool };
-    }
-  }
-  // all used — reset and pick again
-  usedWords = [];
-  const cat = pool[Math.floor(Math.random() * pool.length)];
-  const word = cat.words[Math.floor(Math.random() * cat.words.length)];
-  return { word, cat: cat.cat, pool };
-}
-
-// ══════════════════════════════════════════
 //  TRANSLATE via MyMemory
 // ══════════════════════════════════════════
-async function translate(word, fromCode) {
-  const from = MM_CODES[fromCode] || fromCode;
-  const url  = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(word)}&langpair=${from}|pl-PL`;
+async function translate(word, mmCode) {
+  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(word)}&langpair=${mmCode}|pl-PL`;
   const res  = await fetch(url);
   const data = await res.json();
-  if (data.responseStatus !== 200) throw new Error('Błąd tłumaczenia: ' + data.responseMessage);
+  if (data.responseStatus !== 200) throw new Error('MyMemory: ' + data.responseMessage);
   let t = data.responseData.translatedText;
-  // MyMemory sometimes returns ALL CAPS for short words — normalize
-  if (t === t.toUpperCase() && t.length > 2) t = t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
-  return t;
+  // normalize ALL-CAPS short results
+  if (t === t.toUpperCase() && t.length > 2) {
+    t = t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
+  }
+  // reject if translation == original (untranslated)
+  if (t.toLowerCase().trim() === word.toLowerCase().trim()) throw new Error('Brak tłumaczenia');
+  return t.trim();
 }
 
 // ══════════════════════════════════════════
-//  GENERATE DISTRACTORS
-//  Translate 3 other random words from same/different cats
+//  PICK WORD + FETCH IF NEEDED
 // ══════════════════════════════════════════
-async function getDistractors(pool, excludeWord, correctTranslation) {
-  // collect candidate words from pool, excluding the correct word
-  let candidates = [];
-  for (const cat of pool) {
-    for (const w of cat.words) {
-      if (w !== excludeWord) candidates.push(w);
+async function pickWordFromWiktionary() {
+  const cats = WIKT_CATS[selectedLang.code][difficulty];
+
+  // Refill pool if empty
+  if (currentPool.length === 0) {
+    // fetch all cats in parallel, merge
+    const results = await Promise.allSettled(
+      cats.map(cat => fetchCategoryWords(cat, selectedLang.code).then(words => ({ cat, words })))
+    );
+    const merged = [];
+    results.forEach(r => {
+      if (r.status === 'fulfilled') {
+        r.value.words.forEach(w => merged.push({ word: w, cat: r.value.cat }));
+      }
+    });
+    if (merged.length === 0) throw new Error('Nie udało się pobrać słów z Wikisłownika');
+    currentPool = shuffle(merged);
+  }
+
+  // Pop words until we find one not used
+  let attempts = 0;
+  while (currentPool.length > 0 && attempts < 200) {
+    attempts++;
+    const item = currentPool.pop();
+    if (!usedWords.has(item.word)) {
+      usedWords.add(item.word);
+      return item;
     }
   }
-  shuffle(candidates);
-  candidates = candidates.slice(0, 8); // translate up to 8, pick first 3 that differ
 
-  const translations = [];
-  for (const cand of candidates) {
-    if (translations.length >= 3) break;
-    try {
-      const t = await translate(cand, selectedLang.code);
-      // avoid duplicating the correct answer or each other
-      const normalized = t.toLowerCase().trim();
-      const isDupe = normalized === correctTranslation.toLowerCase().trim() ||
-                     translations.some(x => x.toLowerCase().trim() === normalized);
-      if (!isDupe && t.length > 0) translations.push(t);
-    } catch(_) { /* skip failed */ }
-  }
-
-  // pad with generic fallbacks if we couldn't get 3
-  const fallbacks = ['nieznane','coś innego','inne słowo','brak tłumaczenia'];
-  while (translations.length < 3) {
-    const fb = fallbacks[translations.length];
-    if (!translations.includes(fb)) translations.push(fb);
-    else translations.push('???');
-  }
-  return translations;
+  // All used — reset
+  usedWords.clear();
+  currentPool = [];
+  return pickWordFromWiktionary();
 }
 
 // ══════════════════════════════════════════
@@ -647,34 +533,61 @@ async function getDistractors(pool, excludeWord, correctTranslation) {
 // ══════════════════════════════════════════
 async function loadQuestion() {
   answered = false;
-  document.getElementById('err-box').className   = 'err-box';
-  document.getElementById('feedback').className  = 'feedback';
-  document.getElementById('next-btn').className  = 'next-btn';
+  document.getElementById('err-box').className      = 'err-box';
+  document.getElementById('feedback').className     = 'feedback';
+  document.getElementById('next-btn').className     = 'next-btn';
   document.getElementById('streak-badge').className = 'streak-badge';
-  document.getElementById('answers').innerHTML   = '';
-  document.getElementById('word-card').innerHTML =
-    `<div class="word-loading">Tłumaczę<span id="load-dots">.</span></div>`;
+  document.getElementById('answers').innerHTML      = '';
+  document.getElementById('word-card').innerHTML    =
+    `<div class="word-loading">Pobieram słówko<span id="load-dots">.</span></div>`;
   startDots();
 
   try {
-    const { word, cat, pool } = pickWord();
-    usedWords.push(word);
+    // 1. Get word from Wiktionary
+    const { word, cat } = await pickWordFromWiktionary();
 
-    // Translate correct word
-    const correctPl = await translate(word, selectedLang.code);
+    // 2. Translate correct word
+    const correctPl = await translate(word, selectedLang.mmCode);
 
-    // Get 3 distractors
-    const wrongs = await getDistractors(pool, word, correctPl);
+    // 3. Get 3 more words for distractors and translate them
+    const distractorWords = [];
+    let poolCopy = [...currentPool];
+    shuffle(poolCopy);
+    for (const item of poolCopy) {
+      if (distractorWords.length >= 6) break;
+      if (!usedWords.has(item.word) && item.word !== word) {
+        distractorWords.push(item.word);
+      }
+    }
+
+    const wrongTranslations = [];
+    for (const dw of distractorWords) {
+      if (wrongTranslations.length >= 3) break;
+      try {
+        const t = await translate(dw, selectedLang.mmCode);
+        const norm = t.toLowerCase().trim();
+        const isDupe = norm === correctPl.toLowerCase().trim() ||
+                       wrongTranslations.some(x => x.toLowerCase().trim() === norm);
+        if (!isDupe && t.length > 0) wrongTranslations.push(t);
+      } catch(_) { /* skip */ }
+    }
+
+    // Fallback if not enough distractors
+    while (wrongTranslations.length < 3) wrongTranslations.push('—');
 
     stopDots();
-    renderQuestion({ word, cat, correct: correctPl, wrong: wrongs });
+
+    // Label from category name
+    const catLabel = CAT_LABELS[cat.split(':')[1]] || cat.split(':')[1] || '';
+
+    renderQuestion({ word, catLabel, correct: correctPl, wrong: wrongTranslations });
 
   } catch(err) {
     stopDots();
     document.getElementById('word-card').innerHTML =
       `<div class="word-loading" style="color:#e74c3c">Błąd ładowania</div>`;
     const errEl = document.getElementById('err-box');
-    errEl.textContent = '⚠ ' + err.message;
+    errEl.textContent = '⚠ ' + err.message + ' — spróbuj ponownie.';
     errEl.className = 'err-box show';
     document.getElementById('next-btn').className = 'next-btn show';
   }
@@ -683,10 +596,10 @@ async function loadQuestion() {
 // ══════════════════════════════════════════
 //  RENDER
 // ══════════════════════════════════════════
-function renderQuestion({ word, cat, correct, wrong }) {
+function renderQuestion({ word, catLabel, correct, wrong }) {
   document.getElementById('word-card').innerHTML = `
     <div class="word-lang-tag">${selectedLang.flag} ${selectedLang.name}</div>
-    <div class="word-category">${cat}</div>
+    ${catLabel ? `<div class="word-category">${catLabel}</div>` : ''}
     <div class="word-main">${word}</div>
   `;
 
