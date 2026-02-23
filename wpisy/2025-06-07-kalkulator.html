@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tytuł wpisu - BiccCorp Blog</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script src="../fade.js"></script>
+
+  <script>
+    function obliczWynagrodzenie() {
+      const godziny = parseFloat(document.getElementById("godziny").value);
+      const stawka = parseFloat(document.getElementById("stawka").value);
+      const dniRobocze = 22; // możesz zmienić np. na 20
+
+      if (isNaN(godziny) || isNaN(stawka) || godziny <= 0 || stawka <= 0) {
+        document.getElementById("wynik").innerText = "Wprowadź poprawne wartości.";
+        return;
+      }
+
+      const miesiecznie = godziny * stawka * dniRobocze;
+
+      document.getElementById("wynik").innerText =
+        "Szacowana płaca brutto za miesiąc: " +
+        miesiecznie.toFixed(2) +
+        " zł";
+    }
+  </script>
+</head>
+
+<body class="dark">
+  <header>
+    <h1>Tytuł wpisu</h1>
+    <nav>
+      <a href="../index.html">Strona główna</a>
+      <a href="../o-mnie.html">O mnie</a>
+      <a href="../galeria.html">Galeria</a>
+      <a href="../wpisy.html">Wpisy</a>
+    </nav>
+  </header>
+
+  <main style="max-width: 700px; padding: 1rem;">
+    <article>
+      <p><em>Data publikacji: 2025-06-07</em></p>
+
+      <h2>Kalkulator wynagrodzenia</h2>
+      <p>Podaj liczbę godzin pracy dziennie oraz stawkę netto za godzinę.</p>
+
+      <div class="kalkulator">
+        <label>
+          Godziny pracy na dzień:
+          <input type="number" id="godziny" step="0.5" min="0" />
+        </label>
+        <br /><br />
+
+        <label>
+          Stawka netto za godzinę (zł):
+          <input type="number" id="stawka" step="0.01" min="0" />
+        </label>
+        <br /><br />
+
+        <button onclick="obliczWynagrodzenie()">Oblicz</button>
+
+        <p id="wynik" style="margin-top: 1rem; font-weight: bold;"></p>
+      </div>
+    </article>
+  </main>
+
+  <footer>
+    <p>© 2025 BiccCorp</p>
+  </footer>
+</body>
+</html>
