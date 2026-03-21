@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pomodoro – BiccCorp</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --sunset-deep:    #0a0520;
+      --sunset-mid:     #1a0535;
+      --sunset-horizon: #6b1f5e;
+      --sunset-orange:  #e05b2b;
+      --sunset-gold:    #f5a623;
+      --sunset-pink:    #f76fa3;
+      --cloud-light:    #ffd4a8;
+      --cloud-shadow:   #c25d7a;
+      --star:           #e8d5ff;
+      --ui-bg:          rgba(10, 5, 32, 0.55);
+      --ui-border:      rgba(245, 166, 35, 0.25);
+      --ui-text:        #f0dfc8;
+      --ui-accent:      #f5a623;
+      --ui-muted:       rgba(240, 223, 200, 0.45);
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: var(--sunset-deep);
+      font-family: 'DM Mono', monospace;
+      color: var(--ui-text);
+    }
+
+    /* ── SKY CANVAS ── */
+    #skyCanvas {
+      position: fixed;
+      inset: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+    }
+
+    /* ── STARS LAYER ── */
+    #starsCanvas {
+      position: fixed;
+      inset: 0;
+      width: 100%; height: 100%;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* ── CUSTOM BG IMAGE ── */
+    #bgImage {
+      position: fixed;
+      inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      z-index: 2;
+      opacity: 0;
+      transition: opacity 0.6s ease;
+    }
+    #bgImage.visible { opacity: 1; }
+
+    /* ── BG SETTER ── */
+    .bg-setter {
+      position: fixed;
+      bottom: 1.2rem;
+      right: 1.2rem;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+    .bg-toggle {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      border: 1px solid var(--ui-border);
+      background: var(--ui-bg);
+      backdrop-filter: blur(10px);
+      color: var(--ui-muted);
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .bg-toggle:hover { border-color: var(--ui-accent); color: var(--ui-accent); }
+    .bg-popover {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: var(--ui-bg);
+      border: 1px solid var(--ui-border);
+      border-radius: 0.75rem;
+      backdrop-filter: blur(18px);
+      padding: 0.45rem 0.55rem;
+      margin-right: 0.5rem;
+      overflow: hidden;
+      max-width: 0;
+      opacity: 0;
+      transition: max-width 0.35s ease, opacity 0.25s ease;
+      pointer-events: none;
+    }
+    .bg-popover.open {
+      max-width: 340px;
+      opacity: 1;
+      pointer-events: all;
+    }
+    .bg-url-input {
+      width: 200px;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--ui-border);
+      border-radius: 0.45rem;
+      padding: 0.35rem 0.6rem;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.62rem;
+      color: var(--ui-text);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .bg-url-input:focus { border-color: rgba(245,166,35,0.55); }
+    .bg-url-input::placeholder { color: var(--ui-muted); font-size: 0.6rem; }
+    .btn-apply-bg {
+      background: rgba(245,166,35,0.2);
+      border: 1px solid rgba(245,166,35,0.4);
+      border-radius: 0.45rem;
+      color: var(--ui-accent);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.08em;
+      padding: 0.35rem 0.6rem;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .btn-apply-bg:hover { background: rgba(245,166,35,0.35); }
+    .btn-clear-bg {
+      background: none;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 0.45rem;
+      color: var(--ui-muted);
+      font-size: 0.7rem;
+      width: 26px; height: 26px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .btn-clear-bg:hover { color: #f76fa3; border-color: rgba(247,111,163,0.4); }
+
+    /* ── VIGNETTE ── */
+    .vignette {
+      position: fixed;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+      background: radial-gradient(ellipse at 50% 60%, transparent 30%, rgba(5,2,18,0.65) 100%);
+    }
+
+    /* ── MAIN UI ── */
+    .app {
+      position: relative;
+      z-index: 10;
+      width: 100%; height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 2rem;
+      padding: 1.5rem;
+    }
+
+    /* ── POMODORO PANEL ── */
+    .panel {
+      background: var(--ui-bg);
+      border: 1px solid var(--ui-border);
+      border-radius: 1.5rem;
+      backdrop-filter: blur(18px) saturate(1.4);
+      -webkit-backdrop-filter: blur(18px) saturate(1.4);
+      padding: 2rem 2.2rem;
+      box-shadow: 0 8px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+
+    .timer-panel {
+      width: 320px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .panel-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.75rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--ui-muted);
+      margin-bottom: 0.4rem;
+    }
+
+    /* MODE TABS */
+    .mode-tabs {
+      display: flex;
+      gap: 0.4rem;
+      margin-bottom: 1.6rem;
+      background: rgba(0,0,0,0.25);
+      border-radius: 0.75rem;
+      padding: 0.3rem;
+    }
+    .mode-tab {
+      flex: 1;
+      padding: 0.35rem 0;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      border: none;
+      border-radius: 0.5rem;
+      background: transparent;
+      color: var(--ui-muted);
+      cursor: pointer;
+      transition: all 0.25s;
+    }
+    .mode-tab.active {
+      background: rgba(245,166,35,0.18);
+      color: var(--ui-accent);
+    }
+
+    /* CLOCK RING */
+    .clock-wrap {
+      position: relative;
+      width: 200px;
+      height: 200px;
+      margin: 0 auto 1.8rem;
+    }
+    .clock-svg {
+      width: 100%; height: 100%;
+      transform: rotate(-90deg);
+    }
+    .clock-track {
+      fill: none;
+      stroke: rgba(255,255,255,0.06);
+      stroke-width: 6;
+    }
+    .clock-progress {
+      fill: none;
+      stroke: url(#ringGrad);
+      stroke-width: 6;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.5s linear;
+    }
+    .clock-display {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .time-text {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 3.2rem;
+      font-weight: 300;
+      line-height: 1;
+      color: var(--ui-text);
+      letter-spacing: -0.02em;
+    }
+    .session-label {
+      font-size: 0.6rem;
+      letter-spacing: 0.25em;
+      color: var(--ui-muted);
+      margin-top: 0.3rem;
+    }
+
+    /* CONTROLS */
+    .controls {
+      display: flex;
+      gap: 0.8rem;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+    .btn {
+      border: 1px solid var(--ui-border);
+      border-radius: 0.75rem;
+      background: rgba(255,255,255,0.05);
+      color: var(--ui-text);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      padding: 0.55rem 1.2rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn:hover { background: rgba(245,166,35,0.15); border-color: var(--ui-accent); }
+    .btn-primary {
+      background: rgba(245,166,35,0.2);
+      border-color: rgba(245,166,35,0.5);
+      color: var(--ui-accent);
+      padding: 0.55rem 2rem;
+      font-size: 0.75rem;
+    }
+    .btn-primary:hover { background: rgba(245,166,35,0.35); }
+
+    /* SESSION COUNT */
+    .sessions-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    .session-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      transition: background 0.3s;
+    }
+    .session-dot.done { background: var(--ui-accent); }
+    .sessions-label {
+      font-size: 0.6rem;
+      color: var(--ui-muted);
+      letter-spacing: 0.15em;
+    }
+
+    /* ── TASK PANEL ── */
+    .task-panel {
+      width: 300px;
+      max-height: 70vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .task-panel .panel-title {
+      margin-bottom: 1rem;
+    }
+
+    .task-input-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .task-input {
+      flex: 1;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--ui-border);
+      border-radius: 0.6rem;
+      padding: 0.5rem 0.8rem;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--ui-text);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .task-input:focus { border-color: rgba(245,166,35,0.55); }
+    .task-input::placeholder { color: var(--ui-muted); }
+    .btn-add {
+      background: rgba(245,166,35,0.2);
+      border: 1px solid rgba(245,166,35,0.4);
+      border-radius: 0.6rem;
+      color: var(--ui-accent);
+      font-size: 1.1rem;
+      width: 36px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .btn-add:hover { background: rgba(245,166,35,0.35); }
+
+    .task-list {
+      list-style: none;
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      padding-right: 0.2rem;
+    }
+    .task-list::-webkit-scrollbar { width: 3px; }
+    .task-list::-webkit-scrollbar-track { background: transparent; }
+    .task-list::-webkit-scrollbar-thumb { background: rgba(245,166,35,0.3); border-radius: 2px; }
+
+    .task-item {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      padding: 0.6rem 0.8rem;
+      background: rgba(0,0,0,0.2);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 0.6rem;
+      transition: all 0.2s;
+      animation: slideIn 0.25s ease;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-10px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    .task-item:hover { border-color: var(--ui-border); }
+    .task-item.done .task-text { opacity: 0.4; text-decoration: line-through; }
+
+    .task-check {
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(245,166,35,0.4);
+      flex-shrink: 0;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+    }
+    .task-check:hover { border-color: var(--ui-accent); background: rgba(245,166,35,0.1); }
+    .task-item.done .task-check { background: var(--ui-accent); border-color: var(--ui-accent); }
+    .task-check-tick { display: none; font-size: 9px; color: #000; }
+    .task-item.done .task-check-tick { display: block; }
+
+    .task-text {
+      flex: 1;
+      font-size: 0.7rem;
+      line-height: 1.4;
+      color: var(--ui-text);
+    }
+    .task-del {
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.2);
+      cursor: pointer;
+      font-size: 0.75rem;
+      padding: 0.1rem 0.2rem;
+      border-radius: 0.3rem;
+      transition: all 0.15s;
+      line-height: 1;
+    }
+    .task-del:hover { color: #f76fa3; background: rgba(247,111,163,0.1); }
+
+    .task-empty {
+      text-align: center;
+      color: var(--ui-muted);
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      padding: 2rem 0;
+    }
+
+    /* BACK LINK */
+    .back-link {
+      position: fixed;
+      top: 1.2rem;
+      left: 1.5rem;
+      z-index: 20;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      color: var(--ui-muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .back-link:hover { color: var(--ui-accent); }
+
+    /* NOTIFICATION */
+    .notif {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(60px);
+      z-index: 50;
+      background: rgba(10,5,32,0.85);
+      border: 1px solid var(--ui-accent);
+      border-radius: 0.75rem;
+      padding: 0.7rem 1.5rem;
+      font-size: 0.7rem;
+      letter-spacing: 0.15em;
+      color: var(--ui-accent);
+      backdrop-filter: blur(12px);
+      transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .notif.show { transform: translateX(-50%) translateY(0); }
+
+    /* RESPONSIVE */
+    @media (max-width: 700px) {
+      .app { flex-direction: column; overflow-y: auto; height: auto; min-height: 100vh; padding: 4rem 1rem 2rem; }
+      body, html { overflow: auto; }
+      .task-panel { width: 320px; max-height: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- BACK LINK -->
+<a class="back-link" href="../wpisy.html">← wpisy</a>
+
+<!-- SKY GRADIENT -->
+<canvas id="skyCanvas"></canvas>
+<!-- STARS -->
+<canvas id="starsCanvas"></canvas>
+<!-- CUSTOM BG -->
+<img id="bgImage" src="" alt=""/>
+<!-- VIGNETTE -->
+<div class="vignette"></div>
+
+<!-- BG SETTER -->
+<div class="bg-setter">
+  <div class="bg-popover" id="bgPopover">
+    <input class="bg-url-input" id="bgUrlInput" type="text" placeholder="wklej link do obrazka lub GIFa…"/>
+    <button class="btn-apply-bg" id="btnApplyBg">Zastosuj</button>
+    <button class="btn-clear-bg" id="btnClearBg" title="Usuń tło">✕</button>
+  </div>
+  <button class="bg-toggle" id="bgToggle" title="Zmień tło">🖼</button>
+</div>
+
+<!-- NOTIFICATION -->
+<div class="notif" id="notif"></div>
+
+<!-- APP -->
+<div class="app">
+
+  <!-- TIMER PANEL -->
+  <div class="panel timer-panel">
+    <div class="panel-title">Pomodoro Timer</div>
+
+    <div class="mode-tabs">
+      <button class="mode-tab active" data-mode="pomodoro" data-duration="1500">Fokus</button>
+      <button class="mode-tab" data-mode="short" data-duration="300">Przerwa</button>
+      <button class="mode-tab" data-mode="long" data-duration="900">Długa</button>
+    </div>
+
+    <div class="clock-wrap">
+      <svg class="clock-svg" viewBox="0 0 200 200">
+        <defs>
+          <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#f76fa3"/>
+            <stop offset="100%" stop-color="#f5a623"/>
+          </linearGradient>
+        </defs>
+        <circle class="clock-track" cx="100" cy="100" r="88"/>
+        <circle class="clock-progress" id="ringProgress" cx="100" cy="100" r="88"/>
+      </svg>
+      <div class="clock-display">
+        <div class="time-text" id="timeDisplay">25:00</div>
+        <div class="session-label" id="sessionLabel">FOKUS</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn" id="btnReset">Reset</button>
+      <button class="btn btn-primary" id="btnStart">Start</button>
+      <button class="btn" id="btnSkip">Pomiń</button>
+    </div>
+
+    <div class="sessions-row">
+      <span class="sessions-label">Sesje:&nbsp;</span>
+      <div class="session-dot" id="dot1"></div>
+      <div class="session-dot" id="dot2"></div>
+      <div class="session-dot" id="dot3"></div>
+      <div class="session-dot" id="dot4"></div>
+    </div>
+  </div>
+
+  <!-- TASK PANEL -->
+  <div class="panel task-panel">
+    <div class="panel-title">Zadania sesji</div>
+
+    <div class="task-input-row">
+      <input class="task-input" id="taskInput" type="text" placeholder="Dodaj zadanie…" maxlength="80"/>
+      <button class="btn-add" id="btnAddTask" title="Dodaj">+</button>
+    </div>
+
+    <ul class="task-list" id="taskList">
+      <li class="task-empty" id="taskEmpty">Brak zadań. Dodaj pierwsze!</li>
+    </ul>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════════ SCRIPTS ══ -->
+<script>
+/* ── CANVAS SETUP ── */
+const skyC   = document.getElementById('skyCanvas');
+const starC  = document.getElementById('starsCanvas');
+const skyCtx  = skyC.getContext('2d');
+const starCtx = starC.getContext('2d');
+
+function resize() {
+  [skyC, starC].forEach(c => {
+    c.width  = window.innerWidth;
+    c.height = window.innerHeight;
+  });
+  drawSky();
+  initStars();
+  drawStars();
+}
+window.addEventListener('resize', resize);
+
+/* ── SKY GRADIENT ── */
+function drawSky() {
+  const W = skyC.width, H = skyC.height;
+  const g = skyCtx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0.00, '#04010f');
+  g.addColorStop(0.35, '#0d0228');
+  g.addColorStop(0.58, '#2d0948');
+  g.addColorStop(0.72, '#6b1f5e');
+  g.addColorStop(0.82, '#b83a4a');
+  g.addColorStop(0.90, '#e05b2b');
+  g.addColorStop(0.96, '#f5a623');
+  g.addColorStop(1.00, '#ffc96f');
+  skyCtx.fillStyle = g;
+  skyCtx.fillRect(0, 0, W, H);
+
+  // horizon glow
+  const hg = skyCtx.createRadialGradient(W/2, H, 0, W/2, H, W*0.7);
+  hg.addColorStop(0,    'rgba(255,180,60,0.35)');
+  hg.addColorStop(0.45, 'rgba(224,91,43,0.12)');
+  hg.addColorStop(1,    'rgba(0,0,0,0)');
+  skyCtx.fillStyle = hg;
+  skyCtx.fillRect(0, 0, W, H);
+}
+
+/* ── STARS ── */
+let stars = [];
+function initStars() {
+  stars = [];
+  const W = starC.width, H = starC.height;
+  const starZone = H * 0.55; // only upper 55%
+  for (let i = 0; i < 220; i++) {
+    stars.push({
+      x: Math.random() * W,
+      y: Math.random() * starZone,
+      r: Math.random() * 1.2 + 0.2,
+      a: Math.random(),
+      speed: Math.random() * 0.4 + 0.1,
+      phase: Math.random() * Math.PI * 2,
+    });
+  }
+}
+function drawStars() {
+  const W = starC.width, H = starC.height;
+  starCtx.clearRect(0, 0, W, H);
+  const t = Date.now() * 0.001;
+  for (const s of stars) {
+    const alpha = s.a * (0.5 + 0.5 * Math.sin(t * s.speed + s.phase));
+    starCtx.beginPath();
+    starCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    starCtx.fillStyle = `rgba(232, 213, 255, ${alpha})`;
+    starCtx.fill();
+  }
+}
+
+/* ── MAIN ANIMATION LOOP ── */
+let lastT = null;
+function loop(ts) {
+  lastT = ts;
+  drawStars();
+  requestAnimationFrame(loop);
+}
+
+resize();
+requestAnimationFrame(loop);
+
+/* ── BACKGROUND IMAGE ── */
+const bgImg      = document.getElementById('bgImage');
+const bgPopover  = document.getElementById('bgPopover');
+const bgToggle   = document.getElementById('bgToggle');
+const bgUrlInput = document.getElementById('bgUrlInput');
+const btnApplyBg = document.getElementById('btnApplyBg');
+const btnClearBg = document.getElementById('btnClearBg');
+
+// Przywróć zapisane tło
+const savedBg = localStorage.getItem('pomBg');
+if (savedBg) applyBg(savedBg);
+
+bgToggle.addEventListener('click', () => {
+  bgPopover.classList.toggle('open');
+  if (bgPopover.classList.contains('open')) bgUrlInput.focus();
+});
+
+bgUrlInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') applyBgFromInput();
+  if (e.key === 'Escape') bgPopover.classList.remove('open');
+});
+
+btnApplyBg.addEventListener('click', applyBgFromInput);
+btnClearBg.addEventListener('click', () => {
+  bgImg.classList.remove('visible');
+  bgImg.src = '';
+  localStorage.removeItem('pomBg');
+  bgUrlInput.value = '';
+  notify('Tło usunięte.');
+});
+
+function applyBgFromInput() {
+  const url = bgUrlInput.value.trim();
+  if (!url) return;
+  applyBg(url);
+  bgPopover.classList.remove('open');
+}
+
+function applyBg(url) {
+  bgImg.classList.remove('visible');
+  bgImg.onerror = () => notify('⚠ Nie można załadować obrazka.');
+  bgImg.onload  = () => { bgImg.classList.add('visible'); localStorage.setItem('pomBg', url); };
+  bgImg.src = url;
+  bgUrlInput.value = url;
+}
+
+/* ══════════════════════════════════════════════════ POMODORO ══ */
+const MODES = {
+  pomodoro: { label: 'FOKUS',   duration: 25 * 60 },
+  short:    { label: 'PRZERWA', duration: 5  * 60 },
+  long:     { label: 'DŁUGA',   duration: 15 * 60 },
+};
+
+let mode       = 'pomodoro';
+let total      = MODES.pomodoro.duration;
+let remaining  = total;
+let running    = false;
+let interval   = null;
+let sessions   = 0;
+
+const C = 2 * Math.PI * 88;  // circumference of ring (r=88)
+const ringEl   = document.getElementById('ringProgress');
+const timeEl   = document.getElementById('timeDisplay');
+const labelEl  = document.getElementById('sessionLabel');
+const btnStart = document.getElementById('btnStart');
+const btnReset = document.getElementById('btnReset');
+const btnSkip  = document.getElementById('btnSkip');
+const dots     = [1,2,3,4].map(i => document.getElementById('dot' + i));
+
+ringEl.style.strokeDasharray  = C;
+ringEl.style.strokeDashoffset = 0;
+
+function pad(n) { return String(n).padStart(2, '0'); }
+
+function renderTimer() {
+  const m = Math.floor(remaining / 60);
+  const s = remaining % 60;
+  timeEl.textContent = `${pad(m)}:${pad(s)}`;
+  const frac = remaining / total;
+  ringEl.style.strokeDashoffset = C * (1 - frac);
+  dots.forEach((d, i) => {
+    d.classList.toggle('done', i < sessions % 5);
+  });
+}
+
+function setMode(m) {
+  mode      = m;
+  total     = MODES[m].duration;
+  remaining = total;
+  labelEl.textContent = MODES[m].label;
+  stopTimer();
+  renderTimer();
+  document.querySelectorAll('.mode-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.mode === m);
+  });
+}
+
+function startTimer() {
+  if (running) return;
+  running = true;
+  btnStart.textContent = 'Pauza';
+  interval = setInterval(() => {
+    remaining--;
+    if (remaining <= 0) {
+      remaining = 0;
+      renderTimer();
+      clearInterval(interval);
+      running = false;
+      btnStart.textContent = 'Start';
+      onFinish();
+    } else {
+      renderTimer();
+    }
+  }, 1000);
+}
+
+function pauseTimer() {
+  if (!running) return;
+  running = false;
+  clearInterval(interval);
+  btnStart.textContent = 'Start';
+}
+
+function stopTimer() {
+  clearInterval(interval);
+  running = false;
+  btnStart.textContent = 'Start';
+}
+
+function onFinish() {
+  if (mode === 'pomodoro') {
+    sessions++;
+    notify('🍅 Sesja ukończona! Czas na przerwę.');
+    setMode(sessions % 4 === 0 ? 'long' : 'short');
+  } else {
+    notify('✨ Przerwa skończona. Do roboty!');
+    setMode('pomodoro');
+  }
+}
+
+btnStart.addEventListener('click', () => {
+  if (running) pauseTimer(); else startTimer();
+});
+btnReset.addEventListener('click', () => {
+  stopTimer();
+  remaining = total;
+  renderTimer();
+});
+btnSkip.addEventListener('click', () => onFinish());
+
+document.querySelectorAll('.mode-tab').forEach(tab => {
+  tab.addEventListener('click', () => setMode(tab.dataset.mode));
+});
+
+renderTimer();
+
+/* ══════════════════════════════════════════════════ TASKS ══ */
+let tasks = JSON.parse(localStorage.getItem('pomTasks') || '[]');
+
+function saveTasks() {
+  localStorage.setItem('pomTasks', JSON.stringify(tasks));
+}
+
+function renderTasks() {
+  const list  = document.getElementById('taskList');
+  const empty = document.getElementById('taskEmpty');
+  list.innerHTML = '';
+  if (tasks.length === 0) {
+    list.appendChild(empty);
+    empty.style.display = '';
+    return;
+  }
+  empty.style.display = 'none';
+  tasks.forEach((t, i) => {
+    const li = document.createElement('li');
+    li.className = 'task-item' + (t.done ? ' done' : '');
+
+    const check = document.createElement('div');
+    check.className = 'task-check';
+    check.innerHTML = '<span class="task-check-tick">✓</span>';
+    check.addEventListener('click', () => {
+      tasks[i].done = !tasks[i].done;
+      saveTasks(); renderTasks();
+    });
+
+    const txt = document.createElement('span');
+    txt.className = 'task-text';
+    txt.textContent = t.text;
+
+    const del = document.createElement('button');
+    del.className = 'task-del';
+    del.textContent = '✕';
+    del.title = 'Usuń';
+    del.addEventListener('click', () => {
+      tasks.splice(i, 1);
+      saveTasks(); renderTasks();
+    });
+
+    li.appendChild(check);
+    li.appendChild(txt);
+    li.appendChild(del);
+    list.appendChild(li);
+  });
+}
+
+function addTask() {
+  const inp = document.getElementById('taskInput');
+  const txt = inp.value.trim();
+  if (!txt) return;
+  tasks.push({ text: txt, done: false });
+  saveTasks(); renderTasks();
+  inp.value = '';
+  inp.focus();
+}
+
+document.getElementById('btnAddTask').addEventListener('click', addTask);
+document.getElementById('taskInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addTask();
+});
+
+renderTasks();
+
+/* ══════════════════════════════════════════════════ NOTIFY ══ */
+function notify(msg) {
+  const n = document.getElementById('notif');
+  n.textContent = msg;
+  n.classList.add('show');
+  setTimeout(() => n.classList.remove('show'), 3500);
+}
+</script>
+</body>
+</html>
