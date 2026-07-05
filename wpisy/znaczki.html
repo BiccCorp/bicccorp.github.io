@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Znaczki - BiccCorp Blog</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script src="../fade.js"></script>
+
+  <!-- Style TYLKO dla siatki znaczków - nie dotyka Twojego style.css -->
+  <style>
+    .stamp-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      justify-content: flex-start;
+      margin-top: 1rem;
+    }
+    .stamp-grid img {
+      width: 99px;
+      height: 56px;
+      object-fit: contain;
+      display: block;
+    }
+    .stamp-count {
+      opacity: 0.8;
+      font-size: 0.9em;
+    }
+  </style>
+</head>
+<body class="dark"> <!-- tutaj możesz ustawić dark lub light jako domyślny motyw -->
+  <header>
+    <h1>Znaczki</h1>
+    <nav>
+      <a href="../index.html">Strona główna</a>
+      <a href="../o-mnie.html">O mnie</a>
+      <a href="../galeria.html">Galeria</a>
+      <a href="../wpisy.html">Wpisy</a>
+    </nav>
+  </header>
+
+  <main style="max-width: 900px; padding: 1rem;">
+    <article>
+      <p>Moja kolekcja znaczków (stamps). Wszystkie pliki leżą w folderze <code>stamps/</code>, a poniższa siatka sortuje je alfabetycznie automatycznie — wystarczy dopisać nową nazwę pliku do listy w kodzie, resztą zajmie się skrypt.</p>
+
+      <p class="stamp-count">Liczba znaczków: <span id="stamp-count">0</span></p>
+
+      <div class="stamp-grid" id="stamp-grid"></div>
+    </article>
+  </main>
+
+  <footer>
+    <p>© 2025 BiccCorp</p>
+  </footer>
+
+  <script>
+    // ===== LISTA PLIKÓW ZNACZKÓW =====
+    // Dopisuj tu same nazwy plików (z rozszerzeniem), np. "moj-znaczek.png".
+    // Skrypt automatycznie posortuje je alfabetycznie i ułoży w siatce
+    // wierszami/kolumnami (tak jak na wzorcowej stronie).
+    const stampFiles = [
+      "przykladowy-znaczek1.png",
+      "przykladowy-znaczek2.gif",
+      "przykladowy-znaczek3.webp"
+      // "kolejny-znaczek.png",
+    ];
+
+    const sorted = [...stampFiles].sort((a, b) =>
+      a.localeCompare(b, "pl", { sensitivity: "base" })
+    );
+
+    const grid = document.getElementById("stamp-grid");
+    sorted.forEach((filename) => {
+      const img = document.createElement("img");
+      img.src = "stamps/" + filename;
+      img.alt = filename.replace(/\.[^/.]+$/, "");
+      img.loading = "lazy";
+      grid.appendChild(img);
+    });
+
+    document.getElementById("stamp-count").textContent = sorted.length;
+  </script>
+</body>
+</html>

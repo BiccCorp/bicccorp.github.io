@@ -1,4 +1,6 @@
 [ 
+    {"date": "2025-06-07", "title": "szablonwpisu   kopia", "filename": "wpisy/2025-06-07-szablonwpisu - kopia.html"}
+,
     {"date": "2025-06-07", "title": "szablonwpisu", "filename": "wpisy/2025-06-07-szablonwpisu.html"}
 ,
     {"date": "2026-02-23", "title": "akwarium", "filename": "wpisy/2026-02-23-akwarium.html"}
@@ -16,4 +18,6 @@
     {"date": "2026-02-23", "title": "suika", "filename": "wpisy/2026-02-23-suika.html"}
 ,
     {"date": "2026-03-21", "title": "pomodoroclouds", "filename": "wpisy/2026-03-21-pomodoroclouds.html"}
+,
+    {"date": "znaczki", "title": "-= ", "filename": "wpisy/znaczki.html"}
 ] 
