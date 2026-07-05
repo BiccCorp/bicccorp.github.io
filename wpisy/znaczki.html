@@ -41,7 +41,7 @@
 
   <main style="max-width: 900px; padding: 1rem;">
     <article>
-      <p>Moja kolekcja znaczków (stamps). Wszystkie pliki leżą w folderze <code>stamps/</code>, a poniższa siatka sortuje je alfabetycznie automatycznie — wystarczy dopisać nową nazwę pliku do listy w kodzie, resztą zajmie się skrypt.</p>
+      <p>Moja kolekcja znaczków (stamps). Wszystkie pliki leżą w folderze <code>stamps/</code>. Lista jest wczytywana z pliku <code>stamps/stamps.json</code>, który generuje program <code>update_stamps.bat</code> — wystarczy go odpalić po dodaniu nowych plików do folderu.</p>
 
       <p class="stamp-count">Liczba znaczków: <span id="stamp-count">0</span></p>
 
@@ -54,31 +54,34 @@
   </footer>
 
   <script>
-    // ===== LISTA PLIKÓW ZNACZKÓW =====
-    // Dopisuj tu same nazwy plików (z rozszerzeniem), np. "moj-znaczek.png".
-    // Skrypt automatycznie posortuje je alfabetycznie i ułoży w siatce
-    // wierszami/kolumnami (tak jak na wzorcowej stronie).
-    const stampFiles = [
-      "przykladowy-znaczek1.png",
-      "przykladowy-znaczek2.gif",
-      "przykladowy-znaczek3.webp"
-      // "kolejny-znaczek.png",
-    ];
+    // Lista plików znaczków wczytywana z JSON-a wygenerowanego
+    // przez update_stamps.bat. Plik JSON musi leżeć w stamps/stamps.json.
+    fetch("stamps/stamps.json")
+      .then((res) => {
+        if (!res.ok) throw new Error("Nie znaleziono stamps.json");
+        return res.json();
+      })
+      .then((stampFiles) => {
+        const sorted = [...stampFiles].sort((a, b) =>
+          a.localeCompare(b, "pl", { sensitivity: "base" })
+        );
 
-    const sorted = [...stampFiles].sort((a, b) =>
-      a.localeCompare(b, "pl", { sensitivity: "base" })
-    );
+        const grid = document.getElementById("stamp-grid");
+        sorted.forEach((filename) => {
+          const img = document.createElement("img");
+          img.src = "stamps/" + filename;
+          img.alt = filename.replace(/\.[^/.]+$/, "");
+          img.loading = "lazy";
+          grid.appendChild(img);
+        });
 
-    const grid = document.getElementById("stamp-grid");
-    sorted.forEach((filename) => {
-      const img = document.createElement("img");
-      img.src = "stamps/" + filename;
-      img.alt = filename.replace(/\.[^/.]+$/, "");
-      img.loading = "lazy";
-      grid.appendChild(img);
-    });
-
-    document.getElementById("stamp-count").textContent = sorted.length;
+        document.getElementById("stamp-count").textContent = sorted.length;
+      })
+      .catch((err) => {
+        console.error(err);
+        document.getElementById("stamp-grid").textContent =
+          "Nie udało się wczytać stamps.json. Uruchom update_stamps.bat i sprawdź, czy strona jest otwierana przez serwer (http), a nie jako plik lokalny.";
+      });
   </script>
 </body>
 </html>
