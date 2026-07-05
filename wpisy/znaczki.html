@@ -21,6 +21,13 @@
       height: 56px;
       object-fit: contain;
       display: block;
+      transition: transform 0.15s ease;
+      cursor: pointer;
+    }
+    .stamp-grid img:hover {
+      transform: scale(1.8);
+      position: relative;
+      z-index: 10;
     }
     .stamp-count {
       opacity: 0.8;
